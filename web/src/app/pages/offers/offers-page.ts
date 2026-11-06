@@ -11,8 +11,9 @@ import { PriceTag } from '../../shared/price-tag';
 @Component({
   selector: 'app-offers-page',
   imports: [FormsModule, TranslatePipe, PriceTag],
+  host: { class: 'page' },
   template: `
-    <header>
+    <header class="app-bar">
       <h1>{{ 'offers.title' | t }}</h1>
       <label class="field search">
         <span class="visually-hidden">{{ 'offers.search' | t }}</span>
@@ -24,7 +25,7 @@ import { PriceTag } from '../../shared/price-tag';
           <button type="button" [attr.aria-pressed]="period() === p" (click)="setPeriod(p)">{{ 'offers.' + p | t }}</button>
         }
       </div>
-      <div class="filters" role="group">
+      <div class="chips" role="group">
         <button type="button" [attr.aria-pressed]="storeName() === null" (click)="setStore(null)">{{ 'offers.allStores' | t }}</button>
         @for (s of list.stores(); track s.id) {
           <button type="button" [attr.aria-pressed]="storeName() === s.name" [style.--store]="s.color" (click)="setStore(s.name)">

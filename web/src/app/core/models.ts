@@ -74,9 +74,16 @@ export interface CategoryRef {
 export interface ShoppingList {
   id: number;
   name: string;
+  /** Only items still to buy; bought items are fetched with BoughtPage. */
   categories: Category[];
   stores: Store[];
   allCategories: CategoryRef[];
+  boughtCount: number;
+}
+
+export interface BoughtPage {
+  items: ListItem[];
+  total: number;
 }
 
 export interface NewItem {

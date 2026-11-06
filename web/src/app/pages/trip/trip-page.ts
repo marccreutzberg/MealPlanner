@@ -18,15 +18,16 @@ interface TagGroup {
 @Component({
   selector: 'app-trip-page',
   imports: [RouterLink, TranslatePipe],
+  host: { class: 'page' },
   template: `
-    <header>
+    <header class="app-bar">
       <h1>{{ 'trip.title' | t }}</h1>
       @if (trip(); as t) {
         @if (t.estimatedSaving > 0) {
           <p class="saving">{{ 'trip.saving' | t: { amount: rounded(t.estimatedSaving) } }}
             <span>{{ 'trip.savingNote' | t }}</span></p>
         }
-        <div class="tabs" role="tablist">
+        <div class="chips" role="tablist">
           <button role="tab" type="button" [attr.aria-selected]="selected() === null" (click)="selected.set(null)">
             {{ 'trip.all' | t }}
           </button>

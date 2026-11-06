@@ -10,6 +10,15 @@
   --line: #d6dce3;
   --primary: #0a2d6e;
   --primary-ink: #ffffff;
+  --accent: var(--primary);
+  --accent-ink: var(--primary-ink);
+  --accent-text: var(--primary);
+  --bar: var(--paper);
+  --bar-ink: var(--ink);
+  --bar-soft: var(--ink-soft);
+  --bar-line: var(--line);
+  --chip-on: var(--ink);
+  --chip-on-ink: var(--paper);
   --tag: #ffe45c;
   --tag-ink: #1b2430;
   --danger: #b3261e;
@@ -17,14 +26,15 @@
 
   --radius-s: 6px;
   --radius-m: 12px;
-  --tap: 52px;
-  --gutter: 16px;
+  --tap: 40px;
+  --gutter: 12px;
+  --nav-h: 48px;
 
   --font: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --step--1: 0.875rem;
-  --step-0: 1.0625rem;
-  --step-1: 1.25rem;
-  --step-2: 1.625rem;
+  --step--1: 0.75rem;
+  --step-0: 0.875rem;
+  --step-1: 1rem;
+  --step-2: 1.1875rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,8 +77,75 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* The top of every page. Sticky, so the store chips stay in reach while scrolling. */
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: calc(6px + env(safe-area-inset-top)) var(--gutter) 8px;
+  background: var(--bar);
+  color: var(--bar-ink);
+  border-bottom: 1px solid var(--bar-line);
+
+  h1 {
+    margin: 0;
+    font-size: var(--step-2);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+}
+
+/* Pill buttons that pick a store or period. */
+.chips {
+  display: flex;
+  gap: 5px;
+  margin: 6px calc(-1 * var(--gutter)) 0;
+  padding: 0 var(--gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--bar-line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--bar-ink);
+    font-size: var(--step--1);
+    font-weight: 600;
+  }
+
+  /* The store's own colour as a small dot; the chip itself stays calm. */
+  button[style*='--store']::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--store);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.5);
+  }
+
+  button[aria-pressed='true'],
+  button[aria-selected='true'] {
+    background: var(--chip-on);
+    color: var(--chip-on-ink);
+    border-color: var(--chip-on);
+  }
+}
+
+/* Room below the content for the bottom navigation. */
+.page {
+  display: block;
+  padding-bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));
 }
 
 .price {
@@ -80,7 +157,7 @@ button {
   display: grid;
   min-width: 0;
   gap: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   font-size: var(--step--1);
   color: var(--ink-soft);
 
@@ -88,23 +165,25 @@ button {
   select {
     width: 100%;
     min-width: 0;
-    min-height: 48px;
-    padding: 10px 12px;
+    min-height: var(--tap);
+    padding: 8px 12px;
     border: 1px solid var(--line);
     border-radius: var(--radius-s);
     background: var(--surface);
-    font-size: var(--step-0);
+    /* 16px or more, otherwise iOS zooms in when the field gets focus. */
+    font-size: 1rem;
     color: var(--ink);
   }
 }
 
 .button {
-  min-height: 48px;
-  padding: 0 20px;
+  min-height: var(--tap);
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   background: var(--primary);
   color: var(--primary-ink);
+  font-size: var(--step-0);
   font-weight: 600;
 
   &.quiet {

@@ -30,8 +30,9 @@ function isoWeek(day: string): number {
 @Component({
   selector: 'app-meals-page',
   imports: [TranslatePipe],
+  host: { class: 'page' },
   template: `
-    <header>
+    <header class="app-bar">
       <h1>{{ 'meals.title' | t }}</h1>
       <div class="week">
         <button type="button" (click)="move(-7)" [attr.aria-label]="'meals.previous' | t">‹</button>

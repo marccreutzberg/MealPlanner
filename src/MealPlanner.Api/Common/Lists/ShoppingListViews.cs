@@ -28,10 +28,11 @@ public static class ShoppingListViews
 
     public sealed record CategoryRef(int Id, string Name, string Color);
 
-    /// <param name="Categories">Categories that have items, with the items.</param>
+    /// <param name="Categories">Categories with items still to buy, with those items.</param>
     /// <param name="AllCategories">Every category, for moving an item.</param>
+    /// <param name="BoughtCount">Ticked items still on the list; they are fetched page by page (GetBought).</param>
     public sealed record ListDto(int Id, string Name, List<CategoryDto> Categories, List<StoreDto> Stores,
-        List<CategoryRef> AllCategories);
+        List<CategoryRef> AllCategories, int BoughtCount);
 
     /// <summary>The household's one active list, created on first use.</summary>
     public static async Task<ShoppingList> GetActiveListAsync(AppDbContext db, int householdId, CancellationToken ct)
@@ -72,11 +73,16 @@ public static class ShoppingListViews
             candidates.Count, isPinned);
     }
 
-    /// <summary>The whole list grouped by category in the home store's walking order.</summary>
+    /// <summary>
+    /// What is still to buy, grouped by category in the home store's walking order. Bought items only count here:
+    /// they pile up over time and nobody clears them.
+    /// </summary>
     public static async Task<ListDto> LoadAsync(AppDbContext db, int householdId, TimeProvider clock, CancellationToken ct)
     {
         var list = await GetActiveListAsync(db, householdId, ct);
-        var items = await db.ShoppingListItems.Where(i => i.ShoppingListId == list.Id).OrderBy(i => i.AddedAt).ToListAsync(ct);
+        var items = await db.ShoppingListItems.Where(i => i.ShoppingListId == list.Id && !i.IsBought)
+            .OrderBy(i => i.AddedAt).ToListAsync(ct);
+        var boughtCount = await db.ShoppingListItems.CountAsync(i => i.ShoppingListId == list.Id && i.IsBought, ct);
         var categories = await db.Categories.OrderBy(c => c.SortOrder).ToListAsync(ct);
         var stores = await LoadStoresAsync(db, householdId, ct);
         var offers = await OfferLookup.LoadAsync(db, householdId, DanishTime.Today(clock), ct);
@@ -92,7 +98,8 @@ public static class ShoppingListViews
                 .Select(c => new CategoryDto(c.Id, c.Name, c.Color, [.. dtos.Where(d => (d.CategoryId ?? fallback) == c.Id)]))
                 .Where(c => c.Items.Count > 0)],
             stores,
-            [.. categories.Select(c => new CategoryRef(c.Id, c.Name, c.Color))]);
+            [.. categories.Select(c => new CategoryRef(c.Id, c.Name, c.Color))],
+            boughtCount);
     }
 
     public static async Task<Dictionary<int, string>> LoadIngredientNamesAsync(AppDbContext db,

@@ -6,7 +6,10 @@ import { Suggestion } from '../../core/models';
 import { TranslatePipe, translate } from '../../i18n/t.pipe';
 import { Sheet } from '../../shared/sheet';
 
-/** Quick entry: type, pick a suggestion or press Enter, keep going. The sheet stays open for the next item. */
+/**
+ * Quick entry: type and press Enter, or tap a suggestion to put it on the list at once. The sheet stays open for
+ * the next item.
+ */
 @Component({
   selector: 'app-add-sheet',
   imports: [FormsModule, Sheet, TranslatePipe],
@@ -21,7 +24,8 @@ import { Sheet } from '../../shared/sheet';
         @if (suggestions().length) {
           <div class="suggestions" role="group" [attr.aria-label]="'add.suggestions' | t">
             @for (s of suggestions(); track s.text) {
-              <button type="button" (click)="pick(s)">{{ s.text }}</button>
+              <!-- pointerdown is cancelled so the name field keeps focus and the phone keyboard stays up. -->
+              <button type="button" (pointerdown)="$event.preventDefault()" (click)="pick(s)">{{ s.text }}</button>
             }
           </div>
         }
@@ -45,9 +49,9 @@ import { Sheet } from '../../shared/sheet';
   `,
   styles: `
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
     .suggestions button {
-      min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px;
+      min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
       background: var(--paper); font-weight: 600;
     }
     .status { min-height: 1.4em; margin: 0 0 10px; color: var(--ink-soft); font-size: var(--step--1); }
@@ -83,14 +87,18 @@ export class AddSheet {
     }, 150);
   }
 
+  /** A known item: add it straight away, with whatever amount or variant has been typed. */
   protected pick(suggestion: Suggestion): void {
+    clearTimeout(this.timer);
     this.name.set(suggestion.text);
     this.suggestions.set([]);
+    void this.add();
   }
 
   protected async add(): Promise<void> {
     const name = this.name().trim();
-    if (!name) return;
+    // A double tap on a suggestion must not add the item twice.
+    if (!name || this.busy()) return;
     this.busy.set(true);
     try {
       await this.store.add([{ name, quantity: this.quantity.trim() || null, variant: this.variant.trim() || null }]);

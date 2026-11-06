@@ -25,38 +25,38 @@ const SwipeThreshold = 96;
     <div class="text">
       <span class="name">{{ staple().name }}@if (staple().quantity) {<span class="quantity">, {{ staple().quantity }}</span>}</span>
       <span class="why">{{ why() }}</span>
-      <span class="buttons">
-        <button class="add" type="button" (click)="added.emit()" [attr.aria-label]="'staples.addNamed' | t: { name: staple().name }">
-          {{ 'staples.add' | t }}
-        </button>
-        <button class="snooze" type="button" (click)="snoozed.emit()" [attr.aria-label]="'staples.snoozeNamed' | t: { name: staple().name }">
-          {{ 'staples.snooze' | t }}
-        </button>
-      </span>
+      @if (staple().bestOffer; as offer) {
+        <app-price-tag compact [amount]="offer.price" [store]="offer.store" [color]="color()" [lastValidDay]="offer.lastValidDay" />
+      }
     </div>
-    @if (staple().bestOffer; as offer) {
-      <app-price-tag [amount]="offer.price" [store]="offer.store" [color]="color()" [lastValidDay]="offer.lastValidDay" />
-    }
+    <span class="buttons">
+      <button class="snooze" type="button" (click)="snoozed.emit()" [attr.aria-label]="'staples.snoozeNamed' | t: { name: staple().name }">
+        {{ 'staples.snooze' | t }}
+      </button>
+      <button class="add" type="button" (click)="added.emit()" [attr.aria-label]="'staples.addNamed' | t: { name: staple().name }">
+        {{ 'staples.add' | t }}
+      </button>
+    </span>
   `,
   styles: `
     :host {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px var(--gutter);
+      gap: 6px;
+      padding: 5px 8px;
       border-top: 1px solid var(--line);
       background: var(--surface);
       touch-action: pan-y;
       transition: transform 160ms ease-out, opacity 160ms ease-out;
     }
     :host(.dragging) { transition: none; }
-    .text { flex: 1; min-width: 0; display: grid; gap: 2px; }
-    .name { font-weight: 600; }
+    .text { flex: 1; min-width: 0; display: grid; justify-items: start; gap: 1px; line-height: 1.2; }
+    .name { font-weight: 400; }
     .quantity { font-weight: 400; color: var(--ink-soft); }
     .why { font-size: var(--step--1); color: var(--ink-soft); }
-    .buttons { display: flex; gap: 8px; margin-top: 4px; }
+    .buttons { flex: none; display: flex; gap: 5px; }
     .buttons button {
-      min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: var(--step--1); font-weight: 600;
+      min-height: 28px; padding: 0 10px; border-radius: 999px; font-size: var(--step--1); font-weight: 600;
     }
     .add { border: 0; background: var(--primary); color: var(--primary-ink); }
     .snooze { border: 1px solid var(--line); background: transparent; color: var(--ink-soft); }

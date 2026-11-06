@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, booleanAttribute, computed, input } from '@angular/core';
 import { endsSoon, formatPrice, validUntil } from '../core/format';
 
 /**
@@ -8,10 +8,11 @@ import { endsSoon, formatPrice, validUntil } from '../core/format';
 @Component({
   selector: 'app-price-tag',
   template: `
-    <span class="tag" [class.soon]="soon()" [style.--store]="color()">
+    <span class="tag" [class.soon]="soon()" [class.compact]="compact()" [style.--store]="color()">
       <span class="price">{{ price() }}</span>
       <span class="meta">{{ store() }}</span>
-      @if (until()) {
+      <!-- The compact tag only mentions the last day when it is close. -->
+      @if (until() && (!compact() || soon())) {
         <span class="meta until">{{ until() }}</span>
       }
     </span>
@@ -23,17 +24,30 @@ import { endsSoon, formatPrice, validUntil } from '../core/format';
       display: grid;
       grid-template-columns: auto;
       justify-items: end;
-      min-width: 78px;
-      padding: 4px 10px 5px 14px;
+      min-width: 56px;
+      padding: 2px 7px 3px 10px;
       background: var(--tag);
       color: var(--tag-ink);
       border-radius: 3px 8px 8px 3px;
-      box-shadow: inset 5px 0 0 var(--store, var(--primary));
+      box-shadow: inset 4px 0 0 var(--store, var(--primary));
       line-height: 1.1;
     }
-    .price { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .meta { font-size: 0.72rem; font-weight: 600; white-space: nowrap; opacity: 0.85; }
+    .price { font-size: 0.9375rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .meta { font-size: 0.6875rem; font-weight: 600; white-space: nowrap; opacity: 0.85; }
     .soon .until { color: #8a1c14; opacity: 1; }
+    /* One line under the item name, for the two-column list. */
+    .tag.compact {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 5px;
+      min-width: 0;
+      padding: 0 5px 0 7px;
+      border-radius: 2px 6px 6px 2px;
+      box-shadow: inset 3px 0 0 var(--store, var(--primary));
+    }
+    .compact .price { font-size: var(--step--1); }
+    .compact .meta { font-size: 0.625rem; }
   `,
 })
 export class PriceTag {
@@ -41,6 +55,7 @@ export class PriceTag {
   readonly store = input.required<string>();
   readonly color = input<string>();
   readonly lastValidDay = input<string | null>(null);
+  readonly compact = input(false, { transform: booleanAttribute });
 
   protected readonly price = computed(() => formatPrice(this.amount()));
   protected readonly until = computed(() => (this.lastValidDay() ? validUntil(this.lastValidDay()!) : null));

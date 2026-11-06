@@ -11,6 +11,7 @@ public static class ShoppingListModule
         services.AddScoped<ListNotifier>();
         services.AddScoped<ShoppingListWriter>();
         services.AddScoped<GetList.Handler>();
+        services.AddScoped<GetBought.Handler>();
         services.AddScoped<AddItems.Handler>();
         services.AddScoped<UpdateItem.Handler>();
         services.AddScoped<SetBought.Handler>();
@@ -23,6 +24,7 @@ public static class ShoppingListModule
     {
         var group = app.MapGroup("").RequireAuthorization();
         GetList.Map(group);
+        GetBought.Map(group);
         AddItems.Map(group);
         UpdateItem.Map(group);
         SetBought.Map(group);

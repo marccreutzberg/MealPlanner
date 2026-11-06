@@ -25,8 +25,8 @@ import { Component, ElementRef, effect, input, output, viewChild } from '@angula
     }
     dialog[open] { animation: rise 160ms ease-out; }
     dialog::backdrop { background: rgb(10 20 35 / 0.45); }
-    .body { padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom)); }
-    h2 { margin: 0 0 16px; font-size: var(--step-1); }
+    .body { padding: 16px var(--gutter) calc(16px + env(safe-area-inset-bottom)); }
+    h2 { margin: 0 0 12px; font-size: var(--step-1); }
     @keyframes rise { from { transform: translateY(24px); opacity: 0; } }
   `,
 })

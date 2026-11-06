@@ -18,7 +18,8 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
     private ClaimsPrincipal User => (http.HttpContext ?? throw new McpException("No request context")).User;
 
     [McpServerTool(Name = "get_shopping_list", Title = "Get shopping list", ReadOnly = true, Idempotent = true)]
-    [Description("The household's shared shopping list grouped by category (in the home store's walking order). " +
+    [Description("What is still to buy on the household's shared shopping list, grouped by category (in the home " +
+                 "store's walking order). Items already ticked off are only counted (boughtCount). " +
                  "Each item has quantity, variant/brand, tag, store flag and the best offer valid today (store, price, " +
                  "last valid day). Also lists the household's stores with ids. Texts are Danish.")]
     public Task<ShoppingListViews.ListDto> GetShoppingListAsync(GetList.Handler handler, CancellationToken cancellationToken = default) =>

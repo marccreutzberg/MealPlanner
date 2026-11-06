@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, StapleSuggestion, Suggestion, Trip,
+  BoughtPage, CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, StapleSuggestion, Suggestion, Trip,
 } from './models';
 
 /** Typed access to the MealPlanner API. Same origin, so the auth cookie goes along by itself. */
@@ -24,6 +24,11 @@ export class Api {
 
   list() {
     return firstValueFrom(this.http.get<ShoppingList>('/api/shopping-list'));
+  }
+
+  /** Bought items, most recently bought first. */
+  bought(skip: number, take: number) {
+    return firstValueFrom(this.http.get<BoughtPage>('/api/shopping-list/bought', { params: { skip, take } }));
   }
 
   addItems(items: NewItem[]) {
