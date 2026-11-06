@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MealPlanner.Api.Common.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class RecipeNamesAndMealPlanAddedToList : Migration
+    public partial class RecipeNamesAndMealPlanEntryAddedToList : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,7 +17,7 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
             migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "AddedToListAt",
-                table: "MealPlans",
+                table: "MealPlanEntries",
                 type: "datetimeoffset",
                 nullable: true);
 
@@ -37,7 +37,7 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
             migrationBuilder.DropColumn(
                 name: "AddedToListAt",
-                table: "MealPlans");
+                table: "MealPlanEntries");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipes_HouseholdId",

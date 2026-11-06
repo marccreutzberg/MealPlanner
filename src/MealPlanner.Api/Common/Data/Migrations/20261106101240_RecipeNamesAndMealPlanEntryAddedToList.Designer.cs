@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MealPlanner.Api.Common.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261106100922_RecipeNamesAndMealPlanAddedToList")]
-    partial class RecipeNamesAndMealPlanAddedToList
+    [Migration("20261106101240_RecipeNamesAndMealPlanEntryAddedToList")]
+    partial class RecipeNamesAndMealPlanEntryAddedToList
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -295,9 +295,6 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset?>("AddedToListAt")
-                        .HasColumnType("datetimeoffset");
-
                     b.Property<int>("HouseholdId")
                         .HasColumnType("int");
 
@@ -319,6 +316,9 @@ namespace MealPlanner.Api.Common.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("AddedToListAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");

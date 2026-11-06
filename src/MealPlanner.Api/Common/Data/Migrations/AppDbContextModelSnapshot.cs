@@ -292,9 +292,6 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset?>("AddedToListAt")
-                        .HasColumnType("datetimeoffset");
-
                     b.Property<int>("HouseholdId")
                         .HasColumnType("int");
 
@@ -316,6 +313,9 @@ namespace MealPlanner.Api.Common.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("AddedToListAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
