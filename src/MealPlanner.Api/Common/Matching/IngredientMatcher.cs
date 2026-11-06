@@ -60,15 +60,22 @@ public sealed partial class IngredientMatcher
         var matches = new List<int>();
         foreach (var candidate in candidates)
         {
-            if (parts.Any(part => MatchesPart(candidate, part, normalized)))
+            if (parts.Where((part, i) => MatchesPart(candidate, part, normalized, ExclusionScope(parts, i))).Any())
                 matches.Add(candidate.IngredientId);
         }
         return matches;
     }
 
-    private static bool MatchesPart(Candidate candidate, string part, string wholeText)
+    /// <summary>
+    /// "Broccoli- eller blomkålsris" is broccoliris: a part ending in a dash is finished by the next part,
+    /// so exclusions are checked there too.
+    /// </summary>
+    private static string ExclusionScope(List<string> parts, int index) =>
+        parts[index].EndsWith('-') && index + 1 < parts.Count ? parts[index] + " " + parts[index + 1] : parts[index];
+
+    private static bool MatchesPart(Candidate candidate, string part, string wholeText, string exclusionScope)
     {
-        if (candidate.Exclusions.Any(part.Contains)) return false;
+        if (candidate.Exclusions.Any(exclusionScope.Contains)) return false;
 
         var words = Words(part);
         foreach (var keyword in candidate.Keywords)

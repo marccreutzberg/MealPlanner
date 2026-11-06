@@ -28,6 +28,7 @@ public class IngredientMatcherTests
     [InlineData("Bagekartofler", "Kartofler")]
     [InlineData("Danske frilandsæg", "Æg")]
     [InlineData("Basmati ris", "Ris")]
+    [InlineData("FRESHONA Broccoli, blomkål eller rosenkål", "Broccoli")]
     [InlineData("Cocio  eller Blue Keld", "Kakaomælk")]
     public void Matches(string heading, string expected)
     {
@@ -58,6 +59,10 @@ public class IngredientMatcherTests
     [InlineData("Nescafé kaffe specialiteter el. Nesquik kakao")]
     [InlineData("Jensens æbleskiver med kakaocreme")]
     [InlineData("JENSENS Ande- eller flæskestegssauce")]
+    // False positives seen in meal suggestions (6/11 2026).
+    [InlineData("Rahbek snack fileter, indbagt laks")]
+    [InlineData("VITASIA Forstegt kyllingebryst")]
+    [InlineData("FRESHONA Broccoli- eller blomkålsris")]
     [InlineData("")]
     public void Does_not_match(string heading)
     {

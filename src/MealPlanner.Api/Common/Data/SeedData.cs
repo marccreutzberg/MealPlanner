@@ -43,7 +43,7 @@ public static class SeedData
         ("Hakket gris & kalv", "Kød, fisk og fjerkræ", ["gris & kalv", "grise & kalv", "gris og kalv", "grise- og kalv"], []),
         ("Hakket kylling", "Kød, fisk og fjerkræ", ["hakket kylling", "hakket dansk kylling", "hakket kyllingekød"], []),
         ("Hel kylling", "Kød, fisk og fjerkræ", ["hel kylling", "hel dansk kylling", "dansk hel kylling"], []),
-        ("Kyllingebryst", "Kød, fisk og fjerkræ", ["kyllingebryst", "kyllingebrystfilet", "inderfilet"], ["pålæg"]),
+        ("Kyllingebryst", "Kød, fisk og fjerkræ", ["kyllingebryst", "kyllingebrystfilet", "inderfilet"], ["pålæg", "forstegt"]),
         ("Kyllingelår", "Kød, fisk og fjerkræ", ["kyllingelår", "kyllingelårfilet"], []),
         ("Svinemørbrad", "Kød, fisk og fjerkræ", ["mørbrad af gris", "dansk mørbrad", "danske mørbrad", "svinemørbrad"], []),
         ("Flæskesteg", "Kød, fisk og fjerkræ", ["flæskesteg"], ["svær", "sandwich", "sauce"]),
@@ -56,7 +56,7 @@ public static class SeedData
         ("Bacon", "Kød, fisk og fjerkræ", ["bacon"], ["kalkunbacon", "chips", "postej"]),
         ("Oksebøffer", "Kød, fisk og fjerkræ", ["tykstegsbøf", "tykstegbøf", "oksefilet", "oksemedaljon", "entrecote", "ribeye", "culotte"], []),
         ("Oksekød i tern", "Kød, fisk og fjerkræ", ["oksekød i tern", "gullaschkød"], []),
-        ("Laks", "Kød, fisk og fjerkræ", ["laksefilet", "laksestykke", "lakseside", "laks"], ["røget", "varmrøget"]),
+        ("Laks", "Kød, fisk og fjerkræ", ["laksefilet", "laksestykke", "lakseside", "laks"], ["røget", "varmrøget", "indbagt", "snack", "paneret"]),
         ("Hvid fisk", "Kød, fisk og fjerkræ", ["rødspætte", "torsk", "sej", "kuller"], []),
         ("Rejer", "Kød, fisk og fjerkræ", ["rejer"], []),
         ("Fiskefrikadeller", "Kød, fisk og fjerkræ", ["fiskefrikadeller"], []),
@@ -66,7 +66,7 @@ public static class SeedData
         ("Løg", "Frugt og grønt", ["løg", "rødløg"], []),
         ("Gulerødder", "Frugt og grønt", ["gulerødder", "gulerod"], []),
         ("Porrer", "Frugt og grønt", ["porrer", "porre"], []),
-        ("Broccoli", "Frugt og grønt", ["broccoli"], []),
+        ("Broccoli", "Frugt og grønt", ["broccoli"], ["ris"]),
         ("Peberfrugt", "Frugt og grønt", ["peberfrugt"], []),
         ("Agurk", "Frugt og grønt", ["agurk"], []),
         ("Asparges", "Kolonial", ["asparges"], []),
@@ -124,6 +124,7 @@ public static class SeedData
         var db = (AppDbContext)context;
         await SeedReferenceDataAsync(db, ct);
         await SeedMissingCategoryRulesAsync(db, ct);
+        await SeedMissingIngredientAliasesAsync(db, ct);
         await SeedHouseholdAsync(db, ct);
     }
 
@@ -168,6 +169,27 @@ public static class SeedData
             foreach (var term in terms.Where(existing.Add))
                 db.CategoryRules.Add(new CategoryRule { Term = term, CategoryId = byName[category].Id });
 
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Keywords and exclusions are tuned between versions (false matches seen in live data), so missing ones are added
+    /// to the shared seeded ingredients on every start. Nothing is removed, and manual keywords stay.
+    /// </summary>
+    private static async Task SeedMissingIngredientAliasesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var ingredients = await db.Ingredients.Where(i => i.HouseholdId == null).Include(i => i.Aliases).ToListAsync(ct);
+        var byName = ingredients.ToDictionary(i => i.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, _, keywords, exclusions) in Ingredients)
+        {
+            if (!byName.TryGetValue(name, out var ingredient)) continue;
+            foreach (var (text, isExclusion) in keywords.Select(k => (k, false)).Concat(exclusions.Select(x => (x, true))))
+            {
+                if (!ingredient.Aliases.Any(a => a.HouseholdId == null && a.IsExclusion == isExclusion
+                                                  && string.Equals(a.Text, text, StringComparison.OrdinalIgnoreCase)))
+                    ingredient.Aliases.Add(new IngredientAlias { Text = text, IsExclusion = isExclusion });
+            }
+        }
         await db.SaveChangesAsync(ct);
     }
 
