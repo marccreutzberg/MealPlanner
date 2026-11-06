@@ -13,6 +13,10 @@ In production the API runs in IIS on the NUC against its existing SQL Server.
 - **Phase 4 (recipes and meal plan):** Claude saves recipes (`add_recipe`), gets dishes ranked by the week's offers
   (`suggest_meals`), plans the week (`save_meal_plan`, `get_meal_plan`) and puts it on the list with amounts summed
   across dishes (`build_shopping_list` with `mealPlanWeek`). The app shows the meal plan and can put it on the list.
+- **Phase 5 (staples):** "Plejer I at købe?" on the list: pinned items ("altid med") and items due by their buying
+  rhythm (median days between purchases, due at 80 %), with offer badges; "har nok" (button or swipe) hides one for
+  half its rhythm without touching the history. MCP tool `suggest_staples`. Suggestions start once an item has been
+  ticked off on at least three different days.
 
 ## Structure
 
@@ -31,7 +35,7 @@ src/
     Common/Categories/          CategoryClassifier (starter dictionary of ~500 words in SeedData)
     Common/Offers/              OfferLookup: today's offers for a shopping item
     Common/Stores/              StoreSelector (trip planning) and TripText (spec 12.6 text, texts in resx)
-    Common/Lists/               Shopping list views and ShoppingListWriter (adding items), shared by slices
+    Common/Lists/               Shopping list views, ShoppingListWriter (adding items), PurchaseRhythm (staples)
     Common/Meals/               MealScorer (spec 5.3), recipe and meal plan views
     Common/Realtime/            SignalR hub that tells the household's phones the list changed
     Common/Results/             Result type shared by endpoints and MCP tools
@@ -42,10 +46,11 @@ src/
     Features/ShoppingList/      GetList, AddItems, UpdateItem, SetBought, RemoveItems, SuggestItems, BuildTrip
     Features/Recipes/           AddRecipe, GetRecipes, SuggestMeals
     Features/MealPlans/         SaveMealPlan, GetMealPlan, AddMealPlanToList
+    Features/Staples/           GetStapleSuggestions, ManageStaples (snooze, pin, unpin)
     Mcp/                        MCP tools calling the feature handlers
 tests/
   MealPlanner.Tests/            xUnit: offers, Tjek parsing, matcher (spec 12.4), classifier, trip (spec 12.6),
-                                quantities (spec 5.5), meal scoring and meal plans
+                                quantities (spec 5.5), meal scoring, meal plans and purchase rhythm
 web/                            Angular 22 PWA (builds into src/MealPlanner.Api/wwwroot)
   src/app/i18n/da.json          Every Danish text in the app
 ```
@@ -126,6 +131,9 @@ cd web && npm ci
 | `POST /api/recipes` | cookie or key | Save a recipe (same name replaces); lines with `text`, `quantity`, `isMain` |
 | `GET /api/recipes`, `GET /api/recipes/{id}` | cookie or key | |
 | `GET /api/recipes/suggestions` | cookie or key | `count`, `childFriendly`, `maxMinutes`, `from` |
+| `GET /api/staples/suggestions` | cookie or key | Pinned and due items with offer badges |
+| `POST /api/staples/snooze` | cookie or key | `{ "name": "Mælk" }`, "har nok" |
+| `GET/PUT/DELETE /api/staples/pinned` | cookie or key | `{ "name": "Kaffe", "defaultQuantity": "1 pose" }`; DELETE takes `?name=` |
 | `GET /api/meal-plans/{day}` | cookie or key | The week containing the day |
 | `PUT /api/meal-plans/{day}` | cookie or key | `{ "days": [{ "date": "2026-11-09", "recipeId": 1 }] }` (or `"recipe": "Lasagne"`) |
 | `POST /api/meal-plans/{day}/to-shopping-list` | cookie or key | `{ "force": false }`; days already on the list are skipped |
@@ -243,7 +251,8 @@ Migrations run automatically when the app starts.
 
 ## Not built yet
 
-Purchase rhythm and pinned items (phase 5). Editing recipes in the app (v1: Claude writes them, spec 2).
+All five phases of v1 are built. Not in v1 by design (spec 2): editing recipes in the app, more households,
+recipe import from URLs.
 
 Known gaps:
 - Prices are compared per package as printed. Kg prices ("pr. ½ kg", "Kg-pris maks.") and sizes are not normalised,
