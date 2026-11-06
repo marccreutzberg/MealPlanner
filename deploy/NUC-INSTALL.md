@@ -4,7 +4,23 @@ For Claude Code (or Marc) on the NUC. MealPlanner is Marc and Pia's shared shopp
 meal plan and an MCP server for Claude. It is an ASP.NET Core 10 app with an Angular PWA, hosted in **IIS** against
 the **SQL Server that already runs on the NUC**, reached from the internet only through **Cloudflare Tunnel**.
 
-This folder is a ready-built package, not the source code:
+There are two ways to get the app onto the NUC:
+
+- **From the Git repository (recommended):** clone the private GitHub repo, build the package on the NUC, install.
+  Updates are `git pull` + build + `update.ps1`. Needs the .NET 10 SDK, Node 24 and Git on the NUC:
+
+  ```powershell
+  winget install Microsoft.DotNet.SDK.10 CoreyButler.NVMforWindows Git.Git   # then open a new shell
+  nvm install 24.21.0; nvm use 24.21.0
+  git clone https://github.com/<owner>/MealPlanner.git C:\src\MealPlanner
+  cd C:\src\MealPlanner
+  .\deploy\build-package.ps1                 # -> artifacts\MealPlanner-deploy (app + scripts)
+  cd artifacts\MealPlanner-deploy            # continue with step 1 below from this folder
+  ```
+
+- **From a package built elsewhere:** copy `artifacts\MealPlanner-deploy` from the dev machine.
+
+Either way, the package folder contains:
 
 | Path | What |
 | --- | --- |
@@ -119,5 +135,13 @@ URL `https://<hostname>/mcp`, and under *Request headers* `X-Api-Key: <the key>`
 
 ## Updating to a new version
 
-On the dev machine: `.\deploy\build-package.ps1` (needs Node 24: `nvm use 24.21.0`). Copy the new package folder to the
-NUC and run `.\update.ps1` in an elevated PowerShell. Migrations run when the app starts; settings are kept.
+From the repository on the NUC:
+
+```powershell
+cd C:\src\MealPlanner
+git pull
+.\deploy\build-package.ps1
+.\artifacts\MealPlanner-deploy\update.ps1     # elevated PowerShell
+```
+
+(Or build the package on the dev machine and copy it over.) Migrations run when the app starts; settings are kept.
