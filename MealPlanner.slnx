@@ -4,4 +4,7 @@
     <Project Path="src/MealPlanner.AppHost/MealPlanner.AppHost.csproj" />
     <Project Path="src/MealPlanner.ServiceDefaults/MealPlanner.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MealPlanner.Tests/MealPlanner.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -14,4 +14,8 @@ public class ApiKey
     public string KeyHash { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
+
+    public bool IsActive => RevokedAt is null;
+
+    public void Revoke(DateTimeOffset now) => RevokedAt ??= now;
 }
