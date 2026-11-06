@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ItemStorePreference> ItemStorePreferences => Set<ItemStorePreference>();
     public DbSet<PurchaseHistoryEntry> PurchaseHistory => Set<PurchaseHistoryEntry>();
     public DbSet<PinnedItem> PinnedItems => Set<PinnedItem>();
+    public DbSet<ItemSnooze> ItemSnoozes => Set<ItemSnooze>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

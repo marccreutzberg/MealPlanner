@@ -20,7 +20,7 @@ public static class ShoppingListViews
     public sealed record StoreFlag(int StoreId, string Store, StoreFlagSource Source, DateOnly? LastValidDay);
 
     public sealed record ItemDto(int Id, string Name, string? Quantity, string? Variant, string? Tag, int? CategoryId,
-        string? Ingredient, bool IsBought, StoreFlag? Flag, OfferBadge? BestOffer, int OfferCount);
+        string? Ingredient, bool IsBought, StoreFlag? Flag, OfferBadge? BestOffer, int OfferCount, bool IsPinned);
 
     public sealed record CategoryDto(int Id, string Name, string Color, List<ItemDto> Items);
 
@@ -53,7 +53,7 @@ public static class ShoppingListViews
             .ToListAsync(ct);
 
     public static ItemDto ToDto(ShoppingListItem item, OfferLookup offers, IReadOnlyDictionary<int, StoreDto> stores,
-        IReadOnlyDictionary<int, string> ingredientNames)
+        IReadOnlyDictionary<int, string> ingredientNames, bool isPinned = false)
     {
         var candidates = offers.ForItem(item.IngredientId, item.Name, item.Variant);
         var flaggedOffer = item.OfferId is { } offerId ? offers.Find(offerId) : null;
@@ -69,7 +69,7 @@ public static class ShoppingListViews
             item.IngredientId is { } ing ? ingredientNames.GetValueOrDefault(ing) : null, item.IsBought, flag,
             best is null ? null : new OfferBadge(best.Id, best.StoreName, best.Heading, best.Price, best.LastValidDay,
                 best.RequiresAppOrMembership),
-            candidates.Count);
+            candidates.Count, isPinned);
     }
 
     /// <summary>The whole list grouped by category in the home store's walking order.</summary>
@@ -84,7 +84,9 @@ public static class ShoppingListViews
         var storeById = stores.ToDictionary(s => s.Id);
         var fallback = categories.Last().Id;
 
-        var dtos = items.Select(i => ToDto(i, offers, storeById, ingredientNames)).ToList();
+        var pinned = (await db.PinnedItems.Where(p => p.HouseholdId == householdId).Select(p => p.ItemName).ToListAsync(ct))
+            .Select(PurchaseRhythm.Key).ToHashSet();
+        var dtos = items.Select(i => ToDto(i, offers, storeById, ingredientNames, pinned.Contains(PurchaseRhythm.Key(i.Name)))).ToList();
         return new ListDto(list.Id, list.Name,
             [.. categories
                 .Select(c => new CategoryDto(c.Id, c.Name, c.Color, [.. dtos.Where(d => (d.CategoryId ?? fallback) == c.Id)]))

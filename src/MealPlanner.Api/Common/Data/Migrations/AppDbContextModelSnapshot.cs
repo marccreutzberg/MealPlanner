@@ -255,6 +255,33 @@ namespace MealPlanner.Api.Common.Data.Migrations
                     b.ToTable("IngredientAliases");
                 });
 
+            modelBuilder.Entity("MealPlanner.Api.Domain.ItemSnooze", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateOnly>("Until")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseholdId", "ItemName")
+                        .IsUnique();
+
+                    b.ToTable("ItemSnoozes");
+                });
+
             modelBuilder.Entity("MealPlanner.Api.Domain.ItemStorePreference", b =>
                 {
                     b.Property<int>("Id")
@@ -1003,6 +1030,17 @@ namespace MealPlanner.Api.Common.Data.Migrations
                     b.Navigation("Household");
 
                     b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ItemSnooze", b =>
+                {
+                    b.HasOne("MealPlanner.Api.Domain.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Household");
                 });
 
             modelBuilder.Entity("MealPlanner.Api.Domain.ItemStorePreference", b =>

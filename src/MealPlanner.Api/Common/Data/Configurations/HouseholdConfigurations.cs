@@ -59,6 +59,15 @@ public class PurchaseHistoryEntryConfiguration : IEntityTypeConfiguration<Purcha
     }
 }
 
+public class ItemSnoozeConfiguration : IEntityTypeConfiguration<ItemSnooze>
+{
+    public void Configure(EntityTypeBuilder<ItemSnooze> b)
+    {
+        b.Property(x => x.ItemName).HasMaxLength(200);
+        b.HasIndex(x => new { x.HouseholdId, x.ItemName }).IsUnique();
+    }
+}
+
 public class PinnedItemConfiguration : IEntityTypeConfiguration<PinnedItem>
 {
     public void Configure(EntityTypeBuilder<PinnedItem> b)

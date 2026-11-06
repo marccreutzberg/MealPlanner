@@ -10,6 +10,7 @@ using MealPlanner.Api.Features.MealPlans;
 using MealPlanner.Api.Features.Offers;
 using MealPlanner.Api.Features.Recipes;
 using MealPlanner.Api.Features.ShoppingList;
+using MealPlanner.Api.Features.Staples;
 using MealPlanner.Api.Mcp;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ builder.Services.AddScoped<MapOffer.Handler>();
 builder.Services.AddShoppingList();
 builder.Services.AddRecipes();
 builder.Services.AddMealPlans();
+builder.Services.AddStaples();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMcpServer()
@@ -66,6 +68,7 @@ RevokeApiKey.Map(app);
 app.MapShoppingList();
 app.MapRecipes();
 app.MapMealPlans();
+app.MapStaples();
 
 // Claude connector: API key only (header X-Api-Key). Cloudflare restricts /mcp to Anthropic's IP ranges.
 app.MapMcp("/mcp").RequireAuthorization(Policies.ApiKey);
