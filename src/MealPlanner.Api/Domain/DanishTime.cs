@@ -9,4 +9,11 @@ public static class DanishTime
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(instant, Zone).DateTime);
 
     public static DateOnly Today(TimeProvider clock) => ToDate(clock.GetUtcNow());
+
+    /// <summary>Danish midnight at the start of the day, as an instant (for database filters).</summary>
+    public static DateTimeOffset StartOf(DateOnly day)
+    {
+        var local = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        return new DateTimeOffset(local, Zone.GetUtcOffset(local)).ToUniversalTime();
+    }
 }

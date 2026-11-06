@@ -30,7 +30,8 @@ public static class AuthSetup
                 o.Lockout.MaxFailedAccessAttempts = 5;
             })
             .AddEntityFrameworkStores<AppDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            .AddClaimsPrincipalFactory<AppClaimsPrincipalFactory>();
 
         services.ConfigureApplicationCookie(o =>
         {
