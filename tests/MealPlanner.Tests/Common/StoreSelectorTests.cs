@@ -50,11 +50,12 @@ public class StoreSelectorTests
     {
         var plan = Choose(Stores, BirthdayList(), thirdStopThreshold: 50m);
 
-        Assert.Equal(["Lidl", "Coop 365", "REMA 1000"], plan.Visits.Select(v => v.Store.Name));
-        Assert.Equal(81.15m, plan.Visits[0].Subtotal); // 5 x 9,95 + 7,50 + 9,95 + 13,95
-        Assert.Contains(plan.Visits[2].Items, i => i.Item.Name == "Kærnemælk" && i.Offer is null);
+        // The home store first ("REMA først"), then the other stops by basket size.
+        Assert.Equal(["REMA 1000", "Lidl", "Coop 365"], plan.Visits.Select(v => v.Store.Name));
+        Assert.Equal(81.15m, plan.Visits[1].Subtotal); // 5 x 9,95 + 7,50 + 9,95 + 13,95
+        Assert.Contains(plan.Visits[0].Items, i => i.Item.Name == "Kærnemælk" && i.Offer is null);
         // Fanta is cheaper at Coop 365 (same stop as Lidl) than at Netto, which is not visited.
-        Assert.Contains(plan.Visits[1].Items, i => i.Item.Name == "Fanta");
+        Assert.Contains(plan.Visits[2].Items, i => i.Item.Name == "Fanta");
     }
 
     [Fact]
@@ -74,11 +75,11 @@ public class StoreSelectorTests
             I("Kaffe", offers: [At(Netto, 100m)]),     // saves 25 kr. -> Netto becomes stop 2
             I("Vaskemiddel", offers: [At(Kvickly, 120m)]), // saves 30 kr. < 50 -> no third stop
         };
-        Assert.Equal(["Kvickly", "REMA 1000"], Choose(Stores, items, 50m).Visits.Select(v => v.Store.Name));
+        Assert.Equal(["REMA 1000", "Kvickly"], Choose(Stores, items, 50m).Visits.Select(v => v.Store.Name));
 
         items.Add(I("Bleer", offers: [At(Netto, 300m)]));   // Netto now saves 100 kr. -> stop 2
         items.Add(I("Ost", offers: [At(Kvickly, 120m)]));   // Kvickly now saves 60 kr. > 50 -> stop 3
-        Assert.Equal(["Netto", "Kvickly", "REMA 1000"], Choose(Stores, items, 50m).Visits.Select(v => v.Store.Name));
+        Assert.Equal(["REMA 1000", "Netto", "Kvickly"], Choose(Stores, items, 50m).Visits.Select(v => v.Store.Name));
     }
 
     [Fact]
@@ -105,8 +106,8 @@ public class StoreSelectorTests
 
         var plan = Distribute(Stores, [Netto.Id], items);
 
-        Assert.Equal(["Netto", "REMA 1000"], plan.Visits.Select(v => v.Store.Name));
-        Assert.Contains(plan.Visits[1].Items, i => i.Item.Name == "Smør" && i.Offer is null);
+        Assert.Equal(["REMA 1000", "Netto"], plan.Visits.Select(v => v.Store.Name));
+        Assert.Contains(plan.Visits[0].Items, i => i.Item.Name == "Smør" && i.Offer is null);
     }
 
     [Fact]
@@ -172,7 +173,8 @@ public class StoreSelectorTests
 
         var text = TripText.Format(plan, new StringLocalizer<TripTexts>(new FactoryWrapper(texts)));
 
-        Assert.StartsWith("""
+        Assert.StartsWith("REMA 1000", text);
+        Assert.Contains("""
             Lidl (ca. 81 kr.)
             - [ ] Smør (Milbona), 5 stk. · 9,95 kr. stk. = 49,75 kr.
             - [ ] Sukker, 1 kg · 7,50 kr.

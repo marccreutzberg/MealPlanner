@@ -144,10 +144,22 @@ public sealed partial class OfferLookup
             var end = at + name.Length;
             var endsWord = end == heading.Length || !char.IsLetterOrDigit(heading[end]);
             var startsWord = at == 0 || !char.IsLetterOrDigit(heading[at - 1]);
-            var isCompoundTail = !name.Contains(' ') && name.Length >= 3;
+            var isCompoundTail = !name.Contains(' ') && name.Length >= 3 && !IsFalseTail(heading, at, end, name);
             if (endsWord && (startsWord || isCompoundTail)) return true;
         }
         return false;
+    }
+
+    // Words that end like a product but are not compounds of it: "Burgerboost" is not cheese ("ost").
+    private static readonly string[] FalseTails = ["boost", "frost", "post", "kompost"];
+
+    private static bool IsFalseTail(string heading, int at, int end, string name)
+    {
+        var start = at;
+        while (start > 0 && char.IsLetterOrDigit(heading[start - 1])) start--;
+        var word = heading[start..end];
+        return FalseTails.Any(t => t.Length > name.Length && t.EndsWith(name, StringComparison.Ordinal)
+            && word.EndsWith(t, StringComparison.Ordinal));
     }
 
     /// <summary>"rigtigt smør, ikke smørbar" -> required ["smør"], excluded ["smørbar"].</summary>

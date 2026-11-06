@@ -58,7 +58,7 @@ public static class TripViews
         db.ShoppingListItems.Where(i => i.ShoppingListId == listId && !i.IsBought
             && !db.ShoppingTripItems.Any(t => t.TripId == tripId && t.ShoppingListItemId == i.Id));
 
-    /// <summary>The trip with items per store in driving order (other stores by basket size, home store last).</summary>
+    /// <summary>The trip with items per store in driving order (home store first, then other stores by basket size).</summary>
     public static async Task<TripDto> LoadAsync(AppDbContext db, ShoppingTrip trip, IStringLocalizer<TripTexts> texts,
         CancellationToken ct)
     {
@@ -77,16 +77,13 @@ public static class TripViews
         var visitStoreIds = items.Select(x => x.Item.StoreId).ToHashSet();
         if (trip.IsActive && homeId is { } home) visitStoreIds.Add(home);
 
-        var visits = visitStoreIds
+        var visits = OrderVisits(visitStoreIds
             .Select(id =>
             {
                 var here = items.Where(x => x.Item.StoreId == id).Select(x => x.Dto!).ToList();
                 return new VisitDto(id, allStores[id].Name, allStores[id].Color, id == homeId,
                     here.Sum(i => i.LinePrice ?? 0), here);
-            })
-            .OrderBy(v => v.IsHomeStore)
-            .ThenByDescending(v => v.Subtotal)
-            .ToList();
+            }));
 
         var onTrip = trip.Stores.Select(s => s.StoreId).ToHashSet();
         var options = householdStores
@@ -106,9 +103,9 @@ public static class TripViews
             TripText.Format(ToPlan(visits), texts));
     }
 
-    /// <summary>Driving order of the stores on a trip.</summary>
+    /// <summary>Driving order of the stores on a trip: the home store first ("REMA først"), then the bigger baskets.</summary>
     public static List<VisitDto> OrderVisits(IEnumerable<VisitDto> visits) =>
-        [.. visits.OrderBy(v => v.IsHomeStore).ThenByDescending(v => v.Subtotal)];
+        [.. visits.OrderByDescending(v => v.IsHomeStore).ThenByDescending(v => v.Subtotal)];
 
     public static TripSummaryDto ToSummary(ShoppingTrip trip, IReadOnlyDictionary<int, string> storeNames) =>
         new(trip.Id, trip.CreatedAt, trip.FinishedAt,

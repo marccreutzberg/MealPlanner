@@ -22,6 +22,8 @@ public static partial class StoreSelector
 
     private const int MaxStops = 3;
 
+    private static readonly HashSet<int> NoOffers = [];
+
     public sealed record Store(int Id, string Name, bool IsHome, string? StopGroup);
 
     public sealed record Offer(int Id, int StoreId, string Heading, decimal Price, decimal? PrePrice, bool IsEverydayPrice,
@@ -83,25 +85,42 @@ public static partial class StoreSelector
 
     private static Plan DistributeOver(List<Store> visitable, Store home, List<Item> items)
     {
-        var byStore = visitable.ToDictionary(s => s.Id, _ => new List<PlannedItem>());
-        decimal saving = 0;
-        foreach (var item in items)
+        var assigned = items.Select(item => (Item: item, Placed: Assign(item, visitable, home, NoOffers), Shared: false)).ToList();
+
+        // "Ost" next to "Havarti (Castello)" on the same offer: the generic item takes another offer when there is one;
+        // otherwise both point at the same offer, which is most likely one purchase, so its saving counts once.
+        var specificOffers = assigned
+            .Where(a => IsSpecific(a.Item) && a.Placed.Offer is not null)
+            .Select(a => a.Placed.Offer!.Id)
+            .ToHashSet();
+        for (var i = 0; i < assigned.Count; i++)
         {
-            var (store, offer) = Assign(item, visitable, home);
-            var count = PieceCount(item.Quantity);
-            byStore[store.Id].Add(new PlannedItem(item, offer, count, offer?.EffectivePrice * count));
-            if (offer is not null) saving += Saving(offer) * count;
+            var (item, placed, _) = assigned[i];
+            if (IsSpecific(item) || placed.Offer is not { } offer || !specificOffers.Contains(offer.Id)) continue;
+            var other = Assign(item, visitable, home, specificOffers);
+            assigned[i] = other.Offer is not null ? (item, other, false) : (item, placed, true);
         }
 
-        // Other stops first (biggest basket first), the home store last, as the family drives it.
+        var byStore = visitable.ToDictionary(s => s.Id, _ => new List<PlannedItem>());
+        decimal saving = 0;
+        foreach (var (item, (store, offer), shared) in assigned)
+        {
+            var count = PieceCount(item.Quantity);
+            byStore[store.Id].Add(new PlannedItem(item, offer, count, offer?.EffectivePrice * count));
+            if (offer is not null && !shared) saving += Saving(offer) * count;
+        }
+
         var visits = visitable
             .Select(s => new Visit(s, byStore[s.Id]))
             .Where(v => v.Items.Count > 0 || v.Store.IsHome) // the home store is always on the plan (spec 4)
-            .OrderBy(v => v.Store.IsHome)
+            .OrderByDescending(v => v.Store.IsHome)       // the home store first ("REMA først"), then the bigger baskets
             .ThenByDescending(v => v.Subtotal)
             .ToList();
         return new Plan(visits, decimal.Round(saving, 2));
     }
+
+    /// <summary>An item with a variant or brand ("Havarti, Castello") as opposed to a plain "Ost".</summary>
+    private static bool IsSpecific(Item item) => !string.IsNullOrWhiteSpace(item.Variant);
 
     private static void AddBestStop(HashSet<string> chosen, Dictionary<string, List<Store>> stops, List<Item> items, decimal minimumGain)
     {
@@ -125,7 +144,8 @@ public static partial class StoreSelector
             .Sum(x => Saving(x.Offer!) * PieceCount(x.Item.Quantity));
     }
 
-    private static (Store Store, Offer? Offer) Assign(Item item, List<Store> visitable, Store home)
+    /// <param name="skipOffers">Offers the item must not take (already used by a more specific item).</param>
+    private static (Store Store, Offer? Offer) Assign(Item item, List<Store> visitable, Store home, IReadOnlySet<int> skipOffers)
     {
         if (item.FlaggedStoreId is { } flagged)
         {
@@ -133,12 +153,12 @@ public static partial class StoreSelector
             var flaggedStore = visitable.FirstOrDefault(s => s.Id == flagged);
             return flaggedStore is null
                 ? (home, null)
-                : (flaggedStore, item.Offers.Where(o => o.StoreId == flagged).MinBy(o => o.EffectivePrice));
+                : (flaggedStore, item.Offers.Where(o => o.StoreId == flagged && !skipOffers.Contains(o.Id)).MinBy(o => o.EffectivePrice));
         }
 
         var ids = visitable.Select(s => s.Id).ToHashSet();
         var cheapest = item.Offers
-            .Where(o => ids.Contains(o.StoreId))
+            .Where(o => ids.Contains(o.StoreId) && !skipOffers.Contains(o.Id))
             .OrderBy(o => o.EffectivePrice)
             .ThenBy(o => o.StoreId == home.Id ? 0 : 1)
             .FirstOrDefault();
