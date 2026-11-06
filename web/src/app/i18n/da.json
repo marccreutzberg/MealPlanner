@@ -23,6 +23,16 @@
     "uncheck": "Marker {name} som ikke købt",
     "reconnecting": "Forbindelsen er væk. Prøver igen …"
   },
+  "staples": {
+    "title": "Plejer I at købe?",
+    "add": "Tilføj",
+    "addNamed": "Tilføj {name}",
+    "snooze": "Har nok",
+    "snoozeNamed": "Har nok af {name}",
+    "pinned": "Altid med",
+    "rhythm": "Hver {days}. dag · sidst for {since} dage siden",
+    "swipeHint": "Swipe til siden for »har nok«."
+  },
   "add": {
     "title": "Tilføj vare",
     "name": "Vare",
@@ -48,6 +58,7 @@
     "store": "Køb i",
     "noStore": "Butiksplanen bestemmer",
     "rememberStore": "Køb altid varen her",
+    "pin": "Altid med – foreslå den, når den mangler på listen",
     "save": "Gem",
     "delete": "Slet vare",
     "cancel": "Annuller",

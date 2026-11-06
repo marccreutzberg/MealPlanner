@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, Suggestion, Trip,
+  CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, StapleSuggestion, Suggestion, Trip,
 } from './models';
 
 /** Typed access to the MealPlanner API. Same origin, so the auth cookie goes along by itself. */
@@ -52,6 +52,22 @@ export class Api {
 
   trip() {
     return firstValueFrom(this.http.post<Trip>('/api/shopping-list/trip', {}));
+  }
+
+  stapleSuggestions() {
+    return firstValueFrom(this.http.get<StapleSuggestion[]>('/api/staples/suggestions'));
+  }
+
+  snoozeStaple(name: string) {
+    return firstValueFrom(this.http.post<string>('/api/staples/snooze', { name }));
+  }
+
+  pin(name: string, defaultQuantity: string | null) {
+    return firstValueFrom(this.http.put<void>('/api/staples/pinned', { name, defaultQuantity }));
+  }
+
+  unpin(name: string) {
+    return firstValueFrom(this.http.delete<void>('/api/staples/pinned', { params: { name } }));
   }
 
   mealPlan(week: string) {

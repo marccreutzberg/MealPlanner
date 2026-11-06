@@ -55,6 +55,10 @@ import { Sheet } from '../../shared/sheet';
             <input type="checkbox" name="remember" [(ngModel)]="remember" />
             {{ 'edit.rememberStore' | t }}
           </label>
+          <label class="check">
+            <input type="checkbox" name="pinned" [(ngModel)]="pinned" />
+            {{ 'edit.pin' | t }}
+          </label>
           @if (error()) {
             <p class="error" role="alert">{{ error() }}</p>
           }
@@ -91,6 +95,7 @@ export class EditSheet {
   protected categoryId: number | null = null;
   protected storeId: number | null = null;
   protected remember = false;
+  protected pinned = false;
   protected readonly error = signal<string | null>(null);
 
   constructor() {
@@ -104,6 +109,7 @@ export class EditSheet {
       this.categoryId = item.categoryId;
       this.storeId = item.flag?.storeId ?? null;
       this.remember = false;
+      this.pinned = item.isPinned;
       this.error.set(null);
     });
   }
@@ -121,6 +127,7 @@ export class EditSheet {
     else if (this.storeId !== item.flag?.storeId || item.flag?.source !== 'Manual') update.flaggedStoreId = this.storeId;
     try {
       await this.store.update(item.id, update);
+      if (this.pinned !== item.isPinned) await this.store.setPinned(update.name!, this.pinned, update.quantity || null);
       this.closed.emit();
     } catch {
       this.error.set(translate('errors.generic'));

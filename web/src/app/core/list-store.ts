@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Api } from './api';
-import { ItemUpdate, ListItem, NewItem, ShoppingList } from './models';
+import { ItemUpdate, ListItem, NewItem, ShoppingList, StapleSuggestion } from './models';
 import { Realtime } from './realtime';
 
 /**
@@ -14,6 +14,7 @@ export class ListStore {
   private readonly realtime = inject(Realtime);
 
   readonly list = signal<ShoppingList | null>(null);
+  readonly staples = signal<StapleSuggestion[]>([]);
   readonly error = signal(false);
   readonly stores = computed(() => this.list()?.stores ?? []);
   readonly allItems = computed(() => this.list()?.categories.flatMap(c => c.items) ?? []);
@@ -32,9 +33,10 @@ export class ListStore {
 
   reload(): Promise<void> {
     // Several "changed" messages in a row only need one request.
-    this.loading ??= this.api.list()
-      .then(list => {
+    this.loading ??= Promise.all([this.api.list(), this.api.stapleSuggestions().catch(() => [])])
+      .then(([list, staples]) => {
         this.list.set(list);
+        this.staples.set(staples);
         this.error.set(false);
       })
       .catch(() => this.error.set(true))
@@ -62,6 +64,22 @@ export class ListStore {
       this.patchItem(item.id, { isBought: !bought });
       this.error.set(true);
     }
+  }
+
+  /** "Har nok": hidden at once, then confirmed by the server (which also tells the other phone). */
+  async snooze(name: string): Promise<void> {
+    this.staples.set(this.staples().filter(s => s.name !== name));
+    try {
+      await this.api.snoozeStaple(name);
+    } catch {
+      this.error.set(true);
+      await this.reload();
+    }
+  }
+
+  async setPinned(name: string, pinned: boolean, quantity: string | null): Promise<void> {
+    await (pinned ? this.api.pin(name, quantity) : this.api.unpin(name));
+    await this.reload();
   }
 
   async remove(id: number): Promise<void> {

@@ -184,6 +184,25 @@ li {
   }
 }
 
+.staples {
+  box-shadow: inset 6px 0 0 var(--tag);
+
+  h2 {
+    color: var(--ink);
+  }
+
+  app-staple-row {
+    margin-left: 6px;
+  }
+
+  .hint {
+    margin: 0;
+    padding: 4px var(--gutter) 10px calc(var(--gutter) + 6px);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+}
+
 .empty {
   padding: 48px var(--gutter);
   color: var(--ink-soft);

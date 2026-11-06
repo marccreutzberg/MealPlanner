@@ -2,16 +2,17 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ListStore } from '../../core/list-store';
 import { Realtime } from '../../core/realtime';
-import { ListItem, Store } from '../../core/models';
+import { ListItem, StapleSuggestion, Store } from '../../core/models';
 import { TranslatePipe, translate } from '../../i18n/t.pipe';
 import { PriceTag } from '../../shared/price-tag';
 import { AddSheet } from './add-sheet';
 import { EditSheet } from './edit-sheet';
+import { StapleRow } from './staple-row';
 
 /** The week's shared list: categories in the home store's walking order, tick to buy, tap to correct. */
 @Component({
   selector: 'app-list-page',
-  imports: [RouterLink, TranslatePipe, PriceTag, AddSheet, EditSheet],
+  imports: [RouterLink, TranslatePipe, PriceTag, AddSheet, EditSheet, StapleRow],
   template: `
     <header>
       <div class="title-row">
@@ -37,6 +38,17 @@ import { EditSheet } from './edit-sheet';
     }
 
     <main>
+      @if (store.staples().length && !storeFilter()) {
+        <section class="staples" aria-labelledby="staples-title">
+          <h2 id="staples-title">{{ 'staples.title' | t }}</h2>
+          @for (staple of store.staples(); track staple.name) {
+            <app-staple-row [staple]="staple" [color]="staple.bestOffer ? colorOf(staple.bestOffer.store) : undefined"
+                            (added)="addStaple(staple)" (snoozed)="store.snooze(staple.name)" />
+          }
+          <p class="hint">{{ 'staples.swipeHint' | t }}</p>
+        </section>
+      }
+
       @for (category of visible(); track category.id) {
         <section [style.--cat]="category.color">
           <h2>{{ category.name }}</h2>
@@ -120,6 +132,10 @@ export class ListPage implements OnInit {
 
   protected colorOf(storeName: string): string | undefined {
     return this.store.stores().find(s => s.name === storeName)?.color;
+  }
+
+  protected async addStaple(staple: StapleSuggestion): Promise<void> {
+    await this.store.add([{ name: staple.name, quantity: staple.quantity }]);
   }
 
   protected async clearBought(): Promise<void> {

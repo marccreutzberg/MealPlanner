@@ -37,6 +37,17 @@ export interface ListItem {
   flag: StoreFlag | null;
   bestOffer: OfferBadge | null;
   offerCount: number;
+  isPinned: boolean;
+}
+
+export interface StapleSuggestion {
+  name: string;
+  quantity: string | null;
+  reason: 'Pinned' | 'Rhythm';
+  rhythmDays: number | null;
+  daysSinceLast: number | null;
+  lastBought: string | null;
+  bestOffer: OfferBadge | null;
 }
 
 export interface Category {
