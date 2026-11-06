@@ -5,6 +5,7 @@ using MealPlanner.Api.Common.Lists;
 using MealPlanner.Api.Common.Results;
 using MealPlanner.Api.Features.MealPlans;
 using MealPlanner.Api.Features.ShoppingList;
+using MealPlanner.Api.Features.Staples;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
@@ -81,6 +82,15 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
             Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), User.GetHouseholdId(), User.GetUserId(), cancellationToken));
         return await buildTrip.HandleAsync(User.GetHouseholdId(), cancellationToken);
     }
+
+    [McpServerTool(Name = "suggest_staples", Title = "What do we usually buy?", ReadOnly = true, Idempotent = true)]
+    [Description("\"Plejer I at købe?\": items the household pinned as always needed, and items due again by their buying " +
+                 "rhythm (median days between purchases; due at 80 %), with the usual amount and an offer badge when on " +
+                 "offer today. Items already on the list or dismissed with 'har nok' are left out. Offer them to the user " +
+                 "and add the chosen ones with add_to_shopping_list.")]
+    public Task<List<GetStapleSuggestions.SuggestionDto>> SuggestStaplesAsync(
+        GetStapleSuggestions.Handler handler, CancellationToken cancellationToken = default) =>
+        handler.HandleAsync(User.GetHouseholdId(), cancellationToken);
 
     private static T Unwrap<T>(Result<T> result) =>
         result.IsSuccess ? result.Value! : throw new McpException(result.Error!.Message);
