@@ -28,12 +28,18 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
     public Task<ShoppingListViews.ListDto> GetShoppingListAsync(GetList.Handler handler, CancellationToken cancellationToken = default) =>
         handler.HandleAsync(User.GetHouseholdId(), cancellationToken);
 
+    private const string OneProductPerItem =
+        "One item per product. Never combine several products in one item ('Natron, bagepulver og vaniljesukker' " +
+        "must be three items). quantity is an amount ('1 pk.', '500 g'), never a note — put notes like 'tjek skabet " +
+        "først' in variant. The response has warnings for names that look like several products; split those.";
+
     [McpServerTool(Name = "add_to_shopping_list", Title = "Add to shopping list", Destructive = false)]
     [Description("Adds items to the shared list, e.g. from a screenshot of another list or a recipe. Category and " +
                  "offers are found automatically. An item already on the list gets the amounts combined. Use Danish " +
                  "item names ('Smør', 'Hvedemel'), the amount as text ('5 stk.', '2 kg'), a variant/brand when it matters " +
                  "('Castello', 'rigtigt smør, ikke smørbar', 'pålæg'), a tag to group items on the trip ('Bagning'), " +
-                 "a store to buy it in ('Netto'), or an offer id from search_offers to flag it to that offer.")]
+                 "a store to buy it in ('Netto'), or an offer id from search_offers to flag it to that offer. " +
+                 OneProductPerItem)]
     public async Task<AddItems.Response> AddToShoppingListAsync(
         AddItems.Handler handler,
         [Description("Items to add.")] List<ShoppingListWriter.NewItem> items,
@@ -78,7 +84,7 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
         CreateTrip.Handler createTrip,
         AppDbContext db,
         [Description("Any day in a meal plan week (yyyy-MM-dd) whose ingredients should go on the list first.")] DateOnly? mealPlanWeek = null,
-        [Description("Items to add before planning; same fields as add_to_shopping_list.")] List<ShoppingListWriter.NewItem>? extraItems = null,
+        [Description("Items to add before planning; same fields as add_to_shopping_list. " + OneProductPerItem)] List<ShoppingListWriter.NewItem>? extraItems = null,
         [Description("Only these stores (names, e.g. 'Lidl'); REMA 1000 is always included. Leave out to let the planner choose.")] List<string>? stores = null,
         CancellationToken cancellationToken = default)
     {
@@ -93,9 +99,11 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
             // "Already on the list" is fine here; a missing plan is not.
             if (!added.IsSuccess && added.Error!.Kind == ErrorKind.NotFound) throw new McpException(added.Error.Message);
         }
+        List<string>? warnings = null;
         if (extraItems is { Count: > 0 })
-            Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), householdId, User.GetUserId(), cancellationToken));
-        return Unwrap(await createTrip.HandleAsync(new CreateTrip.Command(storeIds), householdId, User.GetUserId(), cancellationToken));
+            warnings = Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), householdId, User.GetUserId(), cancellationToken)).Warnings;
+        var trip = Unwrap(await createTrip.HandleAsync(new CreateTrip.Command(storeIds), householdId, User.GetUserId(), cancellationToken));
+        return warnings is { Count: > 0 } ? trip with { Warnings = warnings } : trip;
     }
 
     [McpServerTool(Name = "suggest_staples", Title = "What do we usually buy?", ReadOnly = true, Idempotent = true)]

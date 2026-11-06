@@ -26,8 +26,9 @@ public static class TripViews
     /// <param name="Names">The first few names of list items not on the trip yet.</param>
     public sealed record NewItemsDto(int Count, List<string> Names);
 
+    /// <param name="Warnings">For Claude: extra items that look like several products in one (build_shopping_list).</param>
     public sealed record TripDto(int Id, DateTimeOffset CreatedAt, DateTimeOffset? FinishedAt, decimal EstimatedSaving,
-        List<VisitDto> Visits, List<StoreOptionDto> Stores, NewItemsDto NewItems, string Text);
+        List<VisitDto> Visits, List<StoreOptionDto> Stores, NewItemsDto NewItems, string Text, List<string>? Warnings = null);
 
     public sealed record TripSummaryDto(int Id, DateTimeOffset CreatedAt, DateTimeOffset? FinishedAt, List<string> Stores,
         int ItemCount, int BoughtCount, decimal Total);
