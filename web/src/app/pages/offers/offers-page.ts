@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api } from '../../core/api';
-import { formatPrice, startsOn } from '../../core/format';
+import { appLabel, formatPrice, startsOn } from '../../core/format';
 import { ListStore } from '../../core/list-store';
 import { Offer, OfferSearch, Period } from '../../core/models';
 import { TranslatePipe, translate } from '../../i18n/t.pipe';
@@ -49,14 +49,17 @@ import { PriceTag } from '../../shared/price-tag';
                   @if (offer.isEverydayPrice) { <span>{{ 'offers.everyday' | t }}</span> }
                   @if (offer.prePrice) { <span>{{ 'offers.prePrice' | t: { price: price(offer.prePrice) } }}</span> }
                   @if (offer.requiresAppOrMembership) { <span class="warn">{{ 'offers.requiresApp' | t }}</span> }
+                  @if (offer.appPrice !== null && offer.appPrice < offer.price) {
+                    <span>{{ 'offers.withoutApp' | t: { price: price(offer.price) } }}</span>
+                  }
                   @if (offer.maxPerCustomer) { <span>{{ 'offers.maxPerCustomer' | t: { count: offer.maxPerCustomer } }}</span> }
                 </span>
                 <button class="button quiet add" type="button" [disabled]="added().has(offer.id)" (click)="addToList(offer)">
                   {{ (added().has(offer.id) ? 'offers.onList' : 'offers.addToList') | t }}
                 </button>
               </div>
-              <app-price-tag [amount]="offer.price" [store]="offer.store" [color]="colorOf(offer.store)"
-                             [lastValidDay]="offer.validTo" />
+              <app-price-tag [amount]="offer.appPrice ?? offer.price" [store]="offer.store" [color]="colorOf(offer.store)"
+                             [lastValidDay]="offer.validTo" [app]="offer.appPrice !== null ? appLabel(offer.store) : null" />
             </li>
           } @empty {
             <li class="empty">{{ 'offers.none' | t }}</li>
@@ -110,6 +113,8 @@ export class OffersPage implements OnInit {
   protected price(amount: number): string {
     return formatPrice(amount);
   }
+
+  protected readonly appLabel = appLabel;
 
   protected starts(offer: Offer): string {
     return startsOn(offer.validFrom);

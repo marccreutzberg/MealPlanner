@@ -11,6 +11,8 @@ import { endsSoon, formatPrice, validUntil } from '../core/format';
     <span class="tag" [class.soon]="soon()" [class.compact]="compact()" [style.--store]="color()">
       <span class="price">{{ price() }}</span>
       <span class="meta">{{ store() }}</span>
+      <!-- An app or member price says so: "Lidl Plus", "Netto+", "medlemspris". -->
+      @if (app()) { <span class="meta app">{{ app() }}</span> }
       <!-- The compact tag only mentions the last day when it is close. -->
       @if (until() && (!compact() || soon())) {
         <span class="meta until">{{ until() }}</span>
@@ -35,6 +37,7 @@ import { endsSoon, formatPrice, validUntil } from '../core/format';
     .price { font-size: 0.9375rem; font-weight: 800; font-variant-numeric: tabular-nums; }
     .meta { font-size: 0.6875rem; font-weight: 600; white-space: nowrap; opacity: 0.85; }
     .soon .until { color: #8a1c14; opacity: 1; }
+    .app { font-weight: 800; opacity: 1; }
     /* One line under the item name, for the two-column list. */
     .tag.compact {
       display: inline-flex;
@@ -55,6 +58,8 @@ export class PriceTag {
   readonly store = input.required<string>();
   readonly color = input<string>();
   readonly lastValidDay = input<string | null>(null);
+  /** Set when amount is an app or member price. */
+  readonly app = input<string | null | undefined>(null);
   readonly compact = input(false, { transform: booleanAttribute });
 
   protected readonly price = computed(() => formatPrice(this.amount()));

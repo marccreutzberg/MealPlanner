@@ -1,5 +1,6 @@
 using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Common.Lists;
+using MealPlanner.Api.Common.Offers;
 using MealPlanner.Api.Common.Stores;
 using MealPlanner.Api.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,10 @@ public static class TripViews
     public sealed record TripItemDto(int Id, int? ItemId, string Name, string? Variant, string? Quantity, string? Tag,
         bool IsBought, bool MovedByHand, string? OfferHeading, decimal? UnitPrice, int Count, decimal? LinePrice,
         DateOnly? LastValidDay, string? Category = null, string? CategoryColor = null, int CategorySort = int.MaxValue,
-        string? PriceLabel = null);
+        string? PriceLabel = null, List<StorePriceDto>? StorePrices = null);
+
+    /// <summary>The item's best offer today in one store, for choosing where to move it ("Flyt til").</summary>
+    public sealed record StorePriceDto(int StoreId, decimal Price, string? AppLabel);
 
     public sealed record VisitDto(int StoreId, string Store, string Color, bool IsHomeStore, decimal Subtotal,
         List<TripItemDto> Items);
@@ -42,16 +46,19 @@ public static class TripViews
     {
         var live = active ? item.ShoppingListItem : null;
         if (active && live is null && !item.WasBought) return null;
+
+        var categoryId = live is null ? item.CategoryId : live.CategoryId;
+        var category = categoryId is { } c && categories?.GetValueOrDefault(c) is { } found ? found : null;
         if (live is null)
             return new TripItemDto(item.Id, null, item.Name, item.Variant, item.Quantity, item.Tag, item.WasBought,
                 item.MovedByHand, item.OfferHeading, item.UnitPrice, item.Count, item.LinePrice, item.LastValidDay,
-                PriceLabel: item.PriceLabel);
+                category?.Name, category?.Color, category?.SortOrder ?? int.MaxValue, item.PriceLabel);
 
         // The amount may have changed on the list since the trip was made ("2 pk." + "2 pk." = "4 pk.").
         var count = StoreSelector.PieceCount(live.Quantity);
         return new TripItemDto(item.Id, live.Id, live.Name, live.Variant, live.Quantity, live.Tag, live.IsBought,
             item.MovedByHand, item.OfferHeading, item.UnitPrice, count, item.UnitPrice * count, item.LastValidDay,
-            PriceLabel: item.PriceLabel);
+            category?.Name, category?.Color, category?.SortOrder ?? int.MaxValue, item.PriceLabel);
     }
 
     /// <summary>Open items on the household's list that are not on the trip.</summary>
@@ -71,9 +78,12 @@ public static class TripViews
         foreach (var s in householdStores) allStores[s.Id] = (s.Name, s.Color);
         var homeId = householdStores.FirstOrDefault(s => s.IsHomeStore)?.Id;
 
+        var categories = await db.Categories.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
+        var offers = trip.IsActive ? await OfferLookup.LoadAsync(db, trip.HouseholdId, DanishTime.Today(TimeProvider.System), ct) : null;
         var items = trip.Items
-            .Select(i => (Item: i, Dto: ToItem(i, trip.IsActive)))
+            .Select(i => (Item: i, Dto: ToItem(i, trip.IsActive, categories)))
             .Where(x => x.Dto is not null)
+            .Select(x => offers is null ? x : x with { Dto = x.Dto! with { StorePrices = StorePrices(x.Item.ShoppingListItem, offers) } })
             .ToList();
         var visitStoreIds = items.Select(x => x.Item.StoreId).ToHashSet();
         if (trip.IsActive && homeId is { } home) visitStoreIds.Add(home);
@@ -81,7 +91,9 @@ public static class TripViews
         var visits = OrderVisits(visitStoreIds
             .Select(id =>
             {
-                var here = items.Where(x => x.Item.StoreId == id).Select(x => x.Dto!).ToList();
+                // By department in the walking order of the home store (the only order known), so nobody walks
+                // back and forth. Other stores use the same order as an approximation.
+                var here = items.Where(x => x.Item.StoreId == id).Select(x => x.Dto!).OrderBy(i => i.CategorySort).ToList();
                 return new VisitDto(id, allStores[id].Name, allStores[id].Color, id == homeId,
                     here.Sum(i => i.LinePrice ?? 0), here);
             }));
@@ -104,6 +116,16 @@ public static class TripViews
             TripText.Format(ToPlan(visits), texts));
     }
 
+    /// <summary>Per store, the cheapest offer today for the list item (what moving it there would cost).</summary>
+    public static List<StorePriceDto>? StorePrices(ShoppingListItem? item, OfferLookup offers) =>
+        item is null ? null :
+        [
+            .. offers.ForItem(item.IngredientId, item.Name, item.Variant, item.Quantity)
+                .GroupBy(o => o.StoreId)
+                .Select(g => g.MinBy(o => o.EffectivePrice)!)
+                .Select(o => new StorePriceDto(o.StoreId, o.EffectivePrice, o.AppLabel)),
+        ];
+
     /// <summary>Driving order of the stores on a trip: the home store first ("REMA først"), then the bigger baskets.</summary>
     public static List<VisitDto> OrderVisits(IEnumerable<VisitDto> visits) =>
         [.. visits.OrderByDescending(v => v.IsHomeStore).ThenByDescending(v => v.Subtotal)];
@@ -118,7 +140,7 @@ public static class TripViews
         new([.. visits.Select(v => new StoreSelector.Visit(
                 new StoreSelector.Store(v.StoreId, v.Store, v.IsHomeStore, null),
                 [.. v.Items.Select(i => new StoreSelector.PlannedItem(
-                    new StoreSelector.Item(i.Id, i.Name, i.Variant, i.Quantity, i.Tag, null, i.IsBought, []),
+                    new StoreSelector.Item(i.Id, i.Name, i.Variant, i.Quantity, i.Tag, null, i.IsBought, [], i.Category, i.CategorySort),
                     i.UnitPrice is { } price
                         ? new StoreSelector.Offer(0, v.StoreId, i.OfferHeading ?? "", price, null, false, i.LastValidDay ?? default,
                             AppLabel: i.PriceLabel)

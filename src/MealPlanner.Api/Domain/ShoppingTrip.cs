@@ -55,6 +55,9 @@ public class ShoppingTripItem
     public string? Variant { get; set; }
     public string? Tag { get; set; }
 
+    /// <summary>The list item's category, frozen with the rest, so a finished trip is still sorted by department.</summary>
+    public int? CategoryId { get; set; }
+
     public int? OfferId { get; set; }
     public string? OfferHeading { get; set; }
     public decimal? UnitPrice { get; set; }
@@ -78,6 +81,7 @@ public class ShoppingTripItem
         Quantity = source.Quantity;
         Variant = source.Variant;
         Tag = source.Tag;
+        CategoryId = source.CategoryId;
         WasBought = source.IsBought;
     }
 

@@ -118,7 +118,7 @@ import { StapleRow } from './staple-row';
           @if (item.bestOffer && !item.isBought) {
             <app-price-tag compact [amount]="item.bestOffer.price" [store]="item.bestOffer.store"
                            [color]="colorOf(item.bestOffer.store)" [lastValidDay]="item.bestOffer.lastValidDay"
-                           [title]="item.bestOffer.heading" />
+                           [app]="item.bestOffer.appLabel" [title]="item.bestOffer.heading" />
           }
         </button>
         <button class="check" type="button" (click)="store.toggleBought(item)"

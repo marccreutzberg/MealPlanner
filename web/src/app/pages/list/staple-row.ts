@@ -26,7 +26,8 @@ const SwipeThreshold = 96;
       <span class="name">{{ staple().name }}@if (staple().quantity) {<span class="quantity">, {{ staple().quantity }}</span>}</span>
       <span class="why">{{ why() }}</span>
       @if (staple().bestOffer; as offer) {
-        <app-price-tag compact [amount]="offer.price" [store]="offer.store" [color]="color()" [lastValidDay]="offer.lastValidDay" />
+        <app-price-tag compact [amount]="offer.price" [store]="offer.store" [color]="color()" [lastValidDay]="offer.lastValidDay"
+                       [app]="offer.appLabel" />
       }
     </div>
     <span class="buttons">

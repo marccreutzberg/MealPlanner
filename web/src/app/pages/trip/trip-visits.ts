@@ -3,13 +3,16 @@ import { formatPrice, formatRounded, inkOn, validUntil } from '../../core/format
 import { TripItem, TripVisit } from '../../core/models';
 import { TranslatePipe } from '../../i18n/t.pipe';
 
-interface TagGroup {
-  tag: string | null;
+interface Department {
+  name: string | null;
+  color: string | null;
   items: TripItem[];
 }
 
 /**
  * A trip's stores in two columns, each under a band in the store's colour, like the list's categories.
+ * Inside a store the items stand by department in the walking order, so nobody walks back and forth; the tag
+ * ("Bagning") is a small label on the item.
  * Active: tap the name to move the item, the circle to tick it. Archive: tap to choose items to put back on the list.
  */
 @Component({
@@ -23,8 +26,8 @@ interface TagGroup {
             <span>{{ visit.store }}</span>
             @if (visit.subtotal > 0) { <span class="subtotal">{{ 'trip.subtotal' | t: { amount: rounded(visit.subtotal) } }}</span> }
           </h2>
-          @for (group of groups(visit); track group.tag) {
-            @if (group.tag) { <h3>{{ group.tag }}</h3> }
+          @for (group of departments(visit); track group.name) {
+            @if (group.name) { <h3 [style.--department]="group.color">{{ group.name }}</h3> }
             <ul>
               @for (item of group.items; track item.id) {
                 <li [class.bought]="mode() === 'active' && item.isBought">
@@ -33,6 +36,8 @@ interface TagGroup {
                     <span class="details">
                       @if (item.quantity) { <span>{{ item.quantity }}</span> }
                       @if (item.unitPrice !== null) { <span class="price">{{ priceText(item) }}</span> }
+                      @if (item.unitPrice !== null && item.priceLabel) { <span class="app">{{ item.priceLabel }}</span> }
+                      @if (item.tag) { <span class="tag">{{ item.tag }}</span> }
                       @if (mode() === 'active' && item.lastValidDay && !item.isBought) { <span>{{ until(item.lastValidDay) }}</span> }
                       @if (mode() === 'archive' && !item.isBought) { <span class="not-bought">{{ 'trip.notBought' | t }}</span> }
                     </span>
@@ -76,15 +81,18 @@ export class TripVisits {
     else this.opened.emit(item);
   }
 
-  /** Items without a group first, like the text version. */
-  protected groups(visit: TripVisit): TagGroup[] {
-    const groups: TagGroup[] = [];
+  /** Departments in walking order; items without one last, like the text version. */
+  protected departments(visit: TripVisit): Department[] {
+    const groups: (Department & { sort: number })[] = [];
     for (const item of visit.items) {
-      let group = groups.find(g => g.tag === item.tag);
-      if (!group) groups.push((group = { tag: item.tag, items: [] }));
+      let group = groups.find(g => g.name === item.category);
+      if (!group) {
+        group = { name: item.category, color: item.categoryColor, sort: item.category ? item.categorySort : Number.MAX_SAFE_INTEGER, items: [] };
+        groups.push(group);
+      }
       group.items.push(item);
     }
-    return groups.sort((a, b) => (a.tag === null ? -1 : b.tag === null ? 1 : 0));
+    return groups.sort((a, b) => a.sort - b.sort);
   }
 
   protected priceText(item: TripItem): string {

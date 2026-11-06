@@ -84,7 +84,7 @@ public sealed class TripService(AppDbContext db, TimeProvider clock)
                 var tripItem = new ShoppingTripItem
                 {
                     ShoppingListItem = listItem, Name = listItem.Name, Quantity = listItem.Quantity,
-                    Variant = listItem.Variant, Tag = listItem.Tag,
+                    Variant = listItem.Variant, Tag = listItem.Tag, CategoryId = listItem.CategoryId,
                 };
                 TripPlanner.Apply(tripItem, planned, visit.Store.Id, byHand: false);
                 listItem.PlannedStoreId = visit.Store.Id;
@@ -158,6 +158,7 @@ public sealed class TripService(AppDbContext db, TimeProvider clock)
         var tripItems = added.Select(i => new ShoppingTripItem
         {
             ShoppingListItem = i, Name = i.Name, Quantity = i.Quantity, Variant = i.Variant, Tag = i.Tag,
+            CategoryId = i.CategoryId,
         }).ToList();
         trip.Items.AddRange(tripItems);
         Place(plan, tripItems, keepMoved: false);

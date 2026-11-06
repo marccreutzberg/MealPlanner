@@ -50,6 +50,15 @@ export function formatTripDate(iso: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/** The chain's app or membership, like the server's AppPrices.Label: "Lidl Plus", "Netto+", "medlemspris". */
+export function appLabel(store: string): string {
+  const name = store.toLowerCase();
+  if (name.startsWith('lidl')) return 'Lidl Plus';
+  if (name.startsWith('netto')) return 'Netto+';
+  if (name.startsWith('coop') || name.startsWith('kvickly')) return 'medlemspris';
+  return 'app';
+}
+
 /** Dark or white text on a coloured band (category or store), whichever reads better on that colour. */
 export function inkOn(hex: string): string {
   const channel = (i: number) => {

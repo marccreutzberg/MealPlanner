@@ -5,8 +5,9 @@ using Microsoft.Extensions.Localization;
 namespace MealPlanner.Api.Common.Stores;
 
 /// <summary>
-/// The trip as plain text for Notes or a message (spec 12.6): one heading per store, sub-headings per tag,
-/// "- [ ]" checklist lines with the known price last. Texts come from TripTexts.resx.
+/// The trip as plain text for Notes or a message (spec 12.6): one heading per store, sub-headings per department in
+/// walking order, "- [ ]" checklist lines with the known price and then the tag ("Bagning") last.
+/// Texts come from TripTexts.resx.
 /// </summary>
 public static class TripText
 {
@@ -22,9 +23,13 @@ public static class TripText
                 ? string.Format(Danish, texts["StoreWithTotal"], visit.Store.Name, Money(decimal.Round(visit.Subtotal)))
                 : visit.Store.Name);
 
-            foreach (var group in visit.Items.GroupBy(i => i.Item.Tag).OrderBy(g => g.Key is null ? 0 : 1))
+            // Departments in walking order; items without one last, without a heading.
+            foreach (var group in visit.Items
+                         .GroupBy(i => (i.Item.CategorySort, i.Item.Category))
+                         .OrderBy(g => g.Key.Category is null ? 1 : 0)
+                         .ThenBy(g => g.Key.CategorySort))
             {
-                if (group.Key is not null) sb.AppendLine(group.Key);
+                if (group.Key.Category is { } category) sb.AppendLine(category);
                 foreach (var item in group) sb.AppendLine(Line(item, texts));
             }
         }
@@ -38,14 +43,15 @@ public static class TripText
         if (!string.IsNullOrWhiteSpace(item.Quantity)) name += ", " + item.Quantity;
 
         var check = item.IsBought ? "- [x] " : "- [ ] ";
-        if (planned.Offer is null) return check + name;
+        var tag = string.IsNullOrWhiteSpace(item.Tag) ? "" : " · " + item.Tag;
+        if (planned.Offer is null) return check + name + tag;
 
         var paid = planned.Offer.EffectivePrice;
         var price = planned.Count > 1
             ? string.Format(Danish, texts["PricePerPiece"], Money(paid), Money(planned.LinePrice!.Value))
             : string.Format(Danish, texts["Price"], Money(paid));
         if (planned.Offer.AppLabel is { } app) price += $" ({app})";
-        return $"{check}{name} · {price}";
+        return $"{check}{name} · {price}{tag}";
     }
 
     /// <summary>"18" for whole kroner, "9,95" otherwise.</summary>

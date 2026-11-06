@@ -16,6 +16,10 @@ export interface OfferBadge {
   price: number;
   lastValidDay: string;
   requiresAppOrMembership: boolean;
+  /** The price without the app, when price is a cheaper app or member price. */
+  priceWithoutApp?: number | null;
+  /** "Lidl Plus", "Netto+" or "medlemspris" when price needs the app or membership. */
+  appLabel?: string | null;
 }
 
 export interface StoreFlag {
@@ -126,11 +130,19 @@ export interface Offer {
   requiresAppOrMembership: boolean;
   maxPerCustomer: number | null;
   ingredients: string[];
+  /** The price with the chain's app or membership; null when there is none. */
+  appPrice: number | null;
 }
 
 export interface OfferSearch {
   total: number;
   offers: Offer[];
+}
+
+export interface TripStorePrice {
+  storeId: number;
+  price: number;
+  appLabel: string | null;
 }
 
 /** One item on a saved trip. itemId is the list item (for ticking); null when removed from the list or finished. */
@@ -147,6 +159,14 @@ export interface TripItem {
   unitPrice: number | null;
   count: number;
   linePrice: number | null;
+  /** Department, in the home store's walking order (categorySort). */
+  category: string | null;
+  categoryColor: string | null;
+  categorySort: number;
+  /** "Lidl Plus", "Netto+" or "medlemspris" when unitPrice is an app or member price. */
+  priceLabel: string | null;
+  /** The item's best offer today per store, for "Flyt til" (active trips only). */
+  storePrices: TripStorePrice[] | null;
   lastValidDay: string | null;
 }
 

@@ -181,11 +181,11 @@ public class StoreSelectorTests
             - [ ] Hvedemel, 2 kg · 9,95 kr.
             - [ ] Hamburgerryg (pålæg, Pålægsslagteren) · 13,95 kr.
             """.ReplaceLineEndings(), text.ReplaceLineEndings());
+        // Departments are the headings (none here: the items have no category); the tag comes last on the line.
         Assert.Contains("""
-            Bagning
-            - [ ] Æg, 2 bakker · 18 kr. stk. = 36 kr.
-            - [ ] Marcipan (Odense) · 29 kr.
-            - [ ] Kærnemælk, 1 l
+            - [ ] Æg, 2 bakker · 18 kr. stk. = 36 kr. · Bagning
+            - [ ] Marcipan (Odense) · 29 kr. · Bagning
+            - [ ] Kærnemælk, 1 l · Bagning
             """.ReplaceLineEndings(), text.ReplaceLineEndings());
     }
 
