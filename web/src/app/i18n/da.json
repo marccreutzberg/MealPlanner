@@ -1,0 +1,97 @@
+{
+  "nav": { "list": "Liste", "offers": "Tilbud", "trip": "Tur", "label": "Hovedmenu" },
+  "login": {
+    "title": "Log ind",
+    "email": "E-mail",
+    "password": "Adgangskode",
+    "submit": "Log ind",
+    "failed": "Forkert e-mail eller adgangskode.",
+    "locked": "For mange forkerte forsøg. Prøv igen om fem minutter."
+  },
+  "list": {
+    "title": "Indkøbsliste",
+    "hideBought": "Skjul købte",
+    "allStores": "Alle butikker",
+    "empty": "Listen er tom. Tryk på plus for at tilføje den første vare.",
+    "emptyFiltered": "Ingen varer til {store}.",
+    "findOffers": "Find tilbud",
+    "clearBought": "Ryd købte",
+    "clearBoughtConfirm": "Fjern alle købte varer fra listen?",
+    "add": "Tilføj vare",
+    "flaggedTo": "Købes i {store}",
+    "check": "Marker {name} som købt",
+    "uncheck": "Marker {name} som ikke købt",
+    "reconnecting": "Forbindelsen er væk. Prøver igen …"
+  },
+  "add": {
+    "title": "Tilføj vare",
+    "name": "Vare",
+    "namePlaceholder": "Fx hytteost",
+    "quantity": "Mængde",
+    "quantityPlaceholder": "Fx 2 stk.",
+    "variant": "Mærke eller variant",
+    "variantPlaceholder": "Fx Castello",
+    "submit": "Tilføj",
+    "added": "{name} er på listen",
+    "close": "Luk",
+    "suggestions": "Forslag"
+  },
+  "edit": {
+    "title": "Ret vare",
+    "name": "Vare",
+    "quantity": "Mængde",
+    "variant": "Mærke eller variant",
+    "variantHint": "Skriv »ikke« foran det, der ikke må med, fx »rigtigt smør, ikke smørbar«.",
+    "tag": "Gruppe på turen",
+    "tagPlaceholder": "Fx Bagning",
+    "category": "Kategori",
+    "store": "Køb i",
+    "noStore": "Butiksplanen bestemmer",
+    "rememberStore": "Køb altid varen her",
+    "save": "Gem",
+    "delete": "Slet vare",
+    "cancel": "Annuller",
+    "offerCount": "{count} tilbud i dag"
+  },
+  "offers": {
+    "title": "Tilbud",
+    "search": "Søg i tilbud",
+    "searchPlaceholder": "Fx kyllingebryst",
+    "period": "Periode",
+    "today": "I dag",
+    "week": "7 dage",
+    "upcoming": "Kommende",
+    "allStores": "Alle",
+    "none": "Ingen tilbud matcher. Prøv et andet ord eller en anden periode.",
+    "addToList": "Sæt på listen",
+    "onList": "På listen",
+    "everyday": "Fast lav pris",
+    "requiresApp": "Kræver app eller medlemskab",
+    "maxPerCustomer": "Maks. {count} pr. kunde",
+    "prePrice": "Før {price}",
+    "count": "{shown} af {total} tilbud",
+    "startsOn": "Fra {day}"
+  },
+  "trip": {
+    "title": "Indkøbstur",
+    "loading": "Finder de bedste butikker …",
+    "saving": "Du sparer ca. {amount} kr.",
+    "savingNote": "Skønnet ud fra førpriser og tilbud.",
+    "share": "Del som tekst",
+    "copied": "Turen er kopieret",
+    "all": "Samlet",
+    "empty": "Listen er tom. Tilføj varer, så laver vi en tur.",
+    "noItems": "Intet at købe her.",
+    "subtotal": "ca. {amount} kr.",
+    "back": "Tilbage til listen"
+  },
+  "tag": {
+    "onlyToday": "kun i dag",
+    "untilTomorrow": "til i morgen",
+    "until": "til {day}"
+  },
+  "errors": {
+    "generic": "Det lykkedes ikke. Prøv igen.",
+    "offline": "Ingen forbindelse til serveren."
+  }
+}

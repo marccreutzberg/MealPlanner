@@ -26,7 +26,12 @@ public static class ShoppingListViews
 
     public sealed record StoreDto(int Id, string Name, string Color, bool IsHomeStore, string? StopGroup);
 
-    public sealed record ListDto(int Id, string Name, List<CategoryDto> Categories, List<StoreDto> Stores);
+    public sealed record CategoryRef(int Id, string Name, string Color);
+
+    /// <param name="Categories">Categories that have items, with the items.</param>
+    /// <param name="AllCategories">Every category, for moving an item.</param>
+    public sealed record ListDto(int Id, string Name, List<CategoryDto> Categories, List<StoreDto> Stores,
+        List<CategoryRef> AllCategories);
 
     /// <summary>The household's one active list, created on first use.</summary>
     public static async Task<ShoppingList> GetActiveListAsync(AppDbContext db, int householdId, CancellationToken ct)
@@ -84,7 +89,8 @@ public static class ShoppingListViews
             [.. categories
                 .Select(c => new CategoryDto(c.Id, c.Name, c.Color, [.. dtos.Where(d => (d.CategoryId ?? fallback) == c.Id)]))
                 .Where(c => c.Items.Count > 0)],
-            stores);
+            stores,
+            [.. categories.Select(c => new CategoryRef(c.Id, c.Name, c.Color))]);
     }
 
     public static async Task<Dictionary<int, string>> LoadIngredientNamesAsync(AppDbContext db,

@@ -1,0 +1,139 @@
+/*
+ * Design tokens. The home store's blue is the primary colour; offer tags use shelf-label yellow.
+ * Everything else stays quiet so the price tags are what the eye finds.
+ */
+:root {
+  --paper: #f2f4f7;
+  --surface: #ffffff;
+  --ink: #1b2430;
+  --ink-soft: #5b6675;
+  --line: #d6dce3;
+  --primary: #0a2d6e;
+  --primary-ink: #ffffff;
+  --tag: #ffe45c;
+  --tag-ink: #1b2430;
+  --danger: #b3261e;
+  --done: #8b95a1;
+
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --tap: 52px;
+  --gutter: 16px;
+
+  --font: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: 1.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #121821;
+    --surface: #1b2330;
+    --ink: #e8edf3;
+    --ink-soft: #a3aebb;
+    --line: #2c3746;
+    --primary: #5b8cff;
+    --primary-ink: #0b1220;
+    --done: #6c7684;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--step-0);
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form fields shared by sheets and pages. */
+.field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+
+  input,
+  select {
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    font-size: var(--step-0);
+    color: var(--ink);
+  }
+}
+
+.button {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+
+  &.quiet {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--line);
+  }
+
+  &.danger {
+    background: transparent;
+    color: var(--danger);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
