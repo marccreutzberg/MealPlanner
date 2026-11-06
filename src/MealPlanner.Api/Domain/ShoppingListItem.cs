@@ -74,12 +74,8 @@ public class ShoppingListItem
         BoughtAt = null;
     }
 
-    /// <summary>The same item added twice: keep one line and show both amounts ("2 + 1", "250 g + 175 g").</summary>
-    public void AddQuantity(string? quantity)
-    {
-        if (string.IsNullOrWhiteSpace(quantity)) return;
-        Quantity = string.IsNullOrWhiteSpace(Quantity) ? quantity.Trim() : $"{Quantity} + {quantity.Trim()}";
-    }
+    /// <summary>The same item added twice: one line with the amounts added up ("250 g" + "175 g" = "425 g").</summary>
+    public void AddQuantity(string? quantity) => Quantity = Domain.Quantity.Combine(Quantity, quantity);
 }
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoreFlagSource>))]
