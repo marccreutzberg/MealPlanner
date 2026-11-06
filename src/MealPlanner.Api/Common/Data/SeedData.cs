@@ -35,8 +35,8 @@ public static class SeedData
         ["Coop 365"] = "Lidl og Coop 365",
     };
 
-    // Ingredient, category, keywords, exclusions.
-    private static readonly (string Name, string Category, string[] Keywords, string[] Exclusions)[] Ingredients =
+    // Ingredient, category, keywords, exclusions. Internal so matcher tests run against the real seed.
+    internal static readonly (string Name, string Category, string[] Keywords, string[] Exclusions)[] Ingredients =
     [
         ("Hakket oksekød", "Kød, fisk og fjerkræ", ["hakket oksekød", "hakket dansk oksekød", "hakket boost", "burger boost"], []),
         ("Hakket grisekød", "Kød, fisk og fjerkræ", ["hakket grisekød", "hakket dansk grisekød", "hakket gris"], ["kalv", "okse"]),
