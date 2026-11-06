@@ -32,6 +32,29 @@ Either way, the package folder contains:
 Ground rules: do not change SQL Server security or configuration without asking Marc; Marc types all passwords himself
 (the Windows password for the app pool and the two users' passwords) - do not ask for them in chat.
 
+## 0. No SQL Server yet? Install SQL Server Express
+
+Only if `Get-Service MSSQL*` finds nothing. Ask Marc before installing. Express is free and its size limit
+(10 GB, 50 GB in 2025) is plenty for MealPlanner.
+
+```powershell
+winget search "SQL Server" --source winget     # pick the newest Express (2025 if listed, else 2022)
+winget install Microsoft.SQLServer.2022.Express --accept-package-agreements --accept-source-agreements
+winget install Microsoft.Sqlcmd                 # the sqlcmd used in the checks below
+```
+
+Wanted result (check after install; fix with SQL Server Configuration Manager or a re-run of setup if not):
+- Instance name `SQLEXPRESS` (service `MSSQL$SQLEXPRESS`), Windows authentication only, service started and set to
+  Automatic.
+- Marc's Windows account is `sysadmin`:
+  `sqlcmd -S lpc:.\SQLEXPRESS -E -C -Q "SELECT IS_SRVROLEMEMBER('sysadmin')"` returns 1.
+  If winget's silent install did not add him, run the Express setup once more with
+  `/ACTION=Install /FEATURES=SQLENGINE /INSTANCENAME=SQLEXPRESS /SQLSYSADMINACCOUNTS="<DOMAIN\user>" /IACCEPTSQLSERVERLICENSETERMS /Q`
+  (download the installer from https://www.microsoft.com/sql-server/sql-server-downloads, *Express* -> *Download Media* -> *Express Core*).
+- TCP/IP is not needed: the app connects with shared memory (`lpc:`), and nothing outside the NUC should reach SQL Server.
+
+The connection string's Data Source is then `lpc:.\SQLEXPRESS`.
+
 ## 1. Check the machine
 
 ```powershell
