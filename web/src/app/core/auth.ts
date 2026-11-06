@@ -28,6 +28,9 @@ export class Auth {
 }
 
 export const authGuard: CanActivateFn = async (_route, state) => {
-  const user = await inject(Auth).ensureUser();
-  return user ? true : inject(Router).createUrlTree(['/login'], { queryParams: { next: state.url } });
+  // inject() only works before the first await.
+  const auth = inject(Auth);
+  const router = inject(Router);
+  const user = await auth.ensureUser();
+  return user ? true : router.createUrlTree(['/login'], { queryParams: { next: state.url } });
 };

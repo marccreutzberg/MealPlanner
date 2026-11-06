@@ -12,6 +12,23 @@
     <InternalsVisibleTo Include="MealPlanner.Tests" />
   </ItemGroup>
 
+  <!-- dotnet publish builds the Angular PWA (web/) into wwwroot and ships it. Skip with -p:SkipWebBuild=true. -->
+  <PropertyGroup>
+    <WebRoot>$(MSBuildProjectDirectory)\..\..\web</WebRoot>
+  </PropertyGroup>
+  <Target Name="BuildWebApp" BeforeTargets="ComputeFilesToPublish" Condition="'$(SkipWebBuild)' != 'true'">
+    <Exec Command="npm ci" WorkingDirectory="$(WebRoot)" Condition="!Exists('$(WebRoot)\node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(WebRoot)" />
+    <ItemGroup>
+      <WebDist Include="wwwroot\**" />
+      <ResolvedFileToPublish Include="@(WebDist->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(WebDist.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />

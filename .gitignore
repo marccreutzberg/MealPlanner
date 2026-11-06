@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # MealPlanner: production settings with secrets live only on the NUC
 **/appsettings.Production.json
+
+# MealPlanner: Angular build output (web/ builds into the API)
+src/MealPlanner.Api/wwwroot/

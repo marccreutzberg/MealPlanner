@@ -10,4 +10,8 @@
     <ProjectReference Include="..\MealPlanner.Api\MealPlanner.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
+  </ItemGroup>
+
 </Project>

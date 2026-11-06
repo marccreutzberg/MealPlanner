@@ -10,6 +10,7 @@ public class FuzzySearchTests
     [InlineData("roedkaal", "Rødkål")]
     [InlineData("kylling", "Kyllingebryst")]
     [InlineData("hyteost", "Hytteost")]          // one typo in a short-ish word
+    [InlineData("hyteo", "Hytteost")]            // the same typo while still typing
     [InlineData("kyllingbryst", "Kyllingebryst")] // missing letter in a long word
     [InlineData("kyllnigebryst", "Kyllingebryst")] // swapped letters
     [InlineData("hakket okse", "REMA 1000 Hakket dansk oksekød 15-18%")]

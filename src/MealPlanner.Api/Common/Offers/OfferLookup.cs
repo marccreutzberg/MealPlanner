@@ -59,8 +59,8 @@ public sealed class OfferLookup
         }
         else
         {
-            var matcher = new IngredientMatcher([new IngredientMatcher.Candidate(0, name, [name], [])]);
-            candidates = offers.Where(o => matcher.Match(o.Heading).Count > 0);
+            var wanted = IngredientMatcher.Normalize(name);
+            candidates = wanted.Length == 0 ? [] : offers.Where(o => NameAppearsIn(wanted, IngredientMatcher.Normalize(o.Heading)));
         }
 
         var (required, excluded) = ParseVariant(variant);
@@ -71,6 +71,24 @@ public sealed class OfferLookup
     }
 
     public CurrentOffer? Find(int offerId) => offers.FirstOrDefault(o => o.Id == offerId);
+
+    /// <summary>
+    /// The item name as whole words, or as the last part of a compound ("ost" in "rygeost") — never the first part:
+    /// in Danish the last part says what the product is, so "kanel" must not match "kanelsnegle".
+    /// </summary>
+    internal static bool NameAppearsIn(string name, string heading)
+    {
+        for (var at = heading.IndexOf(name, StringComparison.Ordinal); at >= 0;
+             at = heading.IndexOf(name, at + 1, StringComparison.Ordinal))
+        {
+            var end = at + name.Length;
+            var endsWord = end == heading.Length || !char.IsLetterOrDigit(heading[end]);
+            var startsWord = at == 0 || !char.IsLetterOrDigit(heading[at - 1]);
+            var isCompoundTail = !name.Contains(' ') && name.Length >= 3;
+            if (endsWord && (startsWord || isCompoundTail)) return true;
+        }
+        return false;
+    }
 
     /// <summary>"rigtigt smør, ikke smørbar" -> required ["smør"], excluded ["smørbar"].</summary>
     internal static (List<string> Required, List<string> Excluded) ParseVariant(string? variant)

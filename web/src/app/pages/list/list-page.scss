@@ -105,7 +105,7 @@ li {
   align-items: center;
   gap: 4px;
   min-height: var(--tap);
-  padding-right: var(--gutter);
+  padding: 6px var(--gutter) 6px 0;
   border-top: 1px solid var(--line);
 
   &:first-child {

@@ -48,9 +48,12 @@ public static class FuzzySearch
 
         var allowed = MaxTypos(queryWord);
         if (allowed == 0) return 0;
-        // Compare with the whole word and with its start, so typos also work while still typing.
-        var prefix = word.Length > queryWord.Length ? word[..queryWord.Length] : word;
-        var distance = Math.Min(DamerauLevenshtein(queryWord, word), DamerauLevenshtein(queryWord, prefix));
+        // Compare with the whole word and with its start (one letter shorter or longer too), so a typo also works
+        // while still typing: "hyteo" -> "hytteo|st".
+        var distance = DamerauLevenshtein(queryWord, word);
+        for (var length = queryWord.Length - 1; length <= queryWord.Length + 1; length++)
+            if (length > 0 && length < word.Length)
+                distance = Math.Min(distance, DamerauLevenshtein(queryWord, word[..length]));
         // One typo ranks above two, so "hyteost" finds Hytteost before Rygeost.
         return distance <= allowed ? WordTypo / distance : 0;
     }

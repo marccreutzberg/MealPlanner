@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
@@ -7,6 +7,10 @@
     <AspNetCoreVersion>10.0.14</AspNetCoreVersion>
     <HangfireVersion>1.8.25</HangfireVersion>
   </PropertyGroup>
+
+  <ItemGroup Label="Aspire hosting">
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="$(AspireVersion)" />
+  </ItemGroup>
 
   <ItemGroup Label="Service defaults">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
@@ -43,3 +47,4 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 </Project>
+

@@ -7,6 +7,9 @@ In production the API runs in IIS on the NUC against its existing SQL Server.
   cookie login for two users.
 - **Phase 2 (offers and MCP):** daily Tjek fetch, ingredient matching, fuzzy offer search, manual mapping,
   API keys and an MCP server on `/mcp` with `search_offers` and `map_offer`.
+- **Phase 3 (shopping list and trip):** Angular PWA in `web/` with the shared list (categories in REMA's walking
+  order, type-ahead, offer badges, store flags, realtime via SignalR), offer search and the shopping trip;
+  MCP tools `get_shopping_list`, `add_to_shopping_list`, `update_shopping_list_item` and `build_shopping_list`.
 
 ## Structure
 
@@ -22,21 +25,36 @@ src/
     Common/Tjek/                TjekClient (the only class that knows the Tjek API)
     Common/Matching/            IngredientMatcher, OfferRematcher
     Common/Search/              FuzzySearch
+    Common/Categories/          CategoryClassifier (starter dictionary of ~500 words in SeedData)
+    Common/Offers/              OfferLookup: today's offers for a shopping item
+    Common/Stores/              StoreSelector (trip planning) and TripText (spec 12.6 text, texts in resx)
+    Common/Lists/               Shopping list views shared by slices and MCP tools
+    Common/Realtime/            SignalR hub that tells the household's phones the list changed
     Common/Results/             Result type shared by endpoints and MCP tools
+    Common/Web/                 Serves the Angular app from wwwroot
     Features/Auth/              Login, logout, current user, login page
     Features/ApiKeys/           Create, list, revoke API keys
     Features/Offers/            FetchOffersJob, SearchOffers, MapOffer
+    Features/ShoppingList/      GetList, AddItems, UpdateItem, SetBought, RemoveItems, SuggestItems, BuildTrip
     Mcp/                        MCP tools calling the feature handlers
 tests/
-  MealPlanner.Tests/            xUnit: offers, Tjek parsing, matcher (spec 12.4 cases), fuzzy search
+  MealPlanner.Tests/            xUnit: offers, Tjek parsing, matcher (spec 12.4), classifier and trip (spec 12.6)
+web/                            Angular 22 PWA (builds into src/MealPlanner.Api/wwwroot)
+  src/app/i18n/da.json          Every Danish text in the app
 ```
 
 Tests: `dotnet test --project tests/MealPlanner.Tests`.
 
 ## Run locally
 
-Requirements: .NET SDK 10, the Aspire CLI (`dotnet tool install -g Aspire.Cli --version 13.6.4`) and a local SQL Server.
-No Docker is needed.
+Requirements: .NET SDK 10, the Aspire CLI (`dotnet tool install -g Aspire.Cli --version 13.6.4`), a local SQL Server
+and Node 24.15+ for the Angular app (`nvm use 24.21.0`; see `web/.nvmrc`). No Docker is needed.
+
+Once, install the web packages (Aspire does not, so `package-lock.json` is never rewritten):
+
+```bash
+cd web && npm ci
+```
 
 1. Check the connection string in `src/MealPlanner.AppHost/appsettings.Development.json`.
    It uses `np:localhost` (named pipes) because TCP is disabled on the dev machine. Change it if your SQL Server differs.
@@ -62,10 +80,12 @@ No Docker is needed.
    ```
 
    Or start `MealPlanner.AppHost` from Visual Studio / VS Code. The Aspire dashboard opens in the browser.
+   The app is on <http://localhost:4200> (Angular dev server with live reload; it proxies `/api`, `/hubs`, `/account`
+   and `/hangfire` to the API on :5169). After `npm run build` in `web/`, the API also serves the built app on :5169.
 
 4. What happens at startup:
    - EF migrations are applied, then seed data is inserted into empty tables
-     (12 categories, 6 chains, 47 ingredients with keywords and exclusions, ~200 category words, the Odder household).
+     (12 categories, 6 chains, 47 ingredients with keywords and exclusions, ~500 category words, the Odder household). New dictionary words are added on every start.
    - The configured users are created.
    - Hangfire creates its tables in the `hangfire` schema and starts its server.
 
@@ -87,6 +107,15 @@ No Docker is needed.
 | `POST /api/api-keys` | cookie | `{ "name": "..." }`, returns the key **once** |
 | `GET /api/api-keys` | cookie | Your keys (without the key itself) |
 | `DELETE /api/api-keys/{id}` | cookie | Revoke |
+| `GET /api/shopping-list` | cookie or key | The list by category with offer badges, stores and categories |
+| `POST /api/shopping-list/items` | cookie or key | `{ "items": [{ "name": "Smør", "quantity": "5 stk.", "variant": "Milbona", "tag": "Bagning", "store": "lidl", "offerId": null }] }` |
+| `PATCH /api/shopping-list/items/{id}` | cookie or key | Correct name, quantity, variant, tag, category (learned), store flag, `rememberStore` |
+| `POST /api/shopping-list/items/{id}/bought` | cookie or key | `{ "bought": true, "storeId": 4 }`, saves the purchase |
+| `DELETE /api/shopping-list/items/{id}` | cookie or key | |
+| `POST /api/shopping-list/clear-bought` | cookie or key | Removes ticked items |
+| `GET /api/shopping-list/suggestions?q=` | cookie or key | Type-ahead |
+| `POST /api/shopping-list/trip` | cookie or key | Plans the trip and returns it per store and as text |
+| `/hubs/shopping-list` | cookie | SignalR: `ListChanged` |
 | `POST /mcp` | key | MCP (Streamable HTTP) |
 | `GET /account/login` | – | Login page (used to reach the Hangfire dashboard) |
 | `GET /hangfire` | cookie | Jobs dashboard, blocked through the tunnel |
@@ -187,15 +216,23 @@ Cloudflare Tunnel (`cloudflared` as a Windows service) is the only way in from t
 dotnet publish src/MealPlanner.Api -c Release -o publish
 ```
 
+Publishing also builds the Angular app (`npm ci` if needed, then `npm run build`) into `wwwroot`, so Node 24 must be
+active. Add `-p:SkipWebBuild=true` to publish only the API.
+
 Copy `publish\` to the NUC. To avoid locked DLLs, put an `app_offline.htm` in `C:\inetpub\MealPlanner` first,
 copy the files (never overwrite `appsettings.Production.json`), then delete `app_offline.htm`.
 Migrations run automatically when the app starts.
 
 ## Not built yet
 
-The Angular PWA, shopping list and trip planning with their MCP tools (phase 3), recipes and meal plans (phase 4),
-purchase rhythm (phase 5). Also open from phase 2: kg-price normalisation ("pr. ½ kg", "Kg-pris maks.") is left for
-trip planning in phase 3, and the secret-path fallback for MCP is only needed if *Request headers* is missing.
+Recipes and meal plans (phase 4), purchase rhythm and pinned items (phase 5).
+
+Known gaps:
+- Prices are compared per package as printed. Kg prices ("pr. ½ kg", "Kg-pris maks.") and sizes are not normalised,
+  so a small Fanta can win over a 1,5 l bottle.
+- Unknown words are not yet classified by Claude Haiku (spec 4); they land in "Andet" until moved, which teaches a rule.
+- Chosen type-ahead corrections are not saved as aliases yet ("hyteost" -> hytteost).
+- The MCP secret-path fallback is only needed if *Request headers* is missing on the private Claude accounts.
 
 Backup is parked: spec section 9 says daily SQL backup copied to Seafile, but Seafile runs on the same NUC,
 so it would not survive losing the machine. Needs an off-site target before it is worth building.

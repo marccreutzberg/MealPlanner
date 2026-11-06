@@ -23,7 +23,7 @@ import { endsSoon, formatPrice, validUntil } from '../core/format';
       display: grid;
       grid-template-columns: auto;
       justify-items: end;
-      min-width: 64px;
+      min-width: 78px;
       padding: 4px 10px 5px 14px;
       background: var(--tag);
       color: var(--tag-ink);
