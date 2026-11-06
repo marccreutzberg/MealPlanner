@@ -30,7 +30,7 @@ Either way, the package folder contains:
 | `appsettings.Production.template.json` | Connection string and the two users; copied to the site by `install.ps1`. |
 
 Ground rules: do not change SQL Server security or configuration without asking Marc; Marc types all passwords himself
-(the Windows password for the app pool and the two users' passwords) - do not ask for them in chat.
+(the two users' passwords) - do not ask for them in chat.
 
 ## 0. No SQL Server yet? Install SQL Server Express
 
@@ -67,26 +67,41 @@ dotnet --list-runtimes                   # needs Microsoft.AspNetCore.App 10.x (
   - named instance, e.g. `MSSQL$SQLEXPRESS`: `lpc:.\SQLEXPRESS`
   `lpc:` is shared memory (same machine). Do not use plain `localhost`: when TCP is disabled, every new connection
   waits ~15 s before SqlClient falls back.
-- Marc's Windows account needs to be able to create the database once (the app creates it and its tables itself):
+- The app runs as the app pool's own account `IIS AppPool\MealPlanner` (no password). It needs a SQL login and
+  `db_owner` in the `MealPlanner` database; the app then creates its tables itself. Marc's Windows account sets this up
+  once, so first check that it is `sysadmin`:
 
   ```powershell
-  sqlcmd -S lpc:. -E -C -Q "SELECT IS_SRVROLEMEMBER('sysadmin') AS sysadmin, IS_SRVROLEMEMBER('dbcreator') AS dbcreator"
+  sqlcmd -S lpc:. -E -C -Q "SELECT IS_SRVROLEMEMBER('sysadmin') AS sysadmin"
   ```
 
-  If both are 0, ask Marc: either give his account `dbcreator`, or create an empty database `MealPlanner` that he owns.
-  (Use `sqlcmd -I` for any statement that writes; without it SQL Server refuses writes to tables with filtered indexes.)
+  After `install.ps1` has created the app pool (step 2), and with Marc's OK (it changes SQL Server security):
+
+  ```powershell
+  sqlcmd -S lpc:. -E -C -I -b -Q "IF DB_ID(N'MealPlanner') IS NULL CREATE DATABASE [MealPlanner]; IF SUSER_ID(N'IIS APPPOOL\MealPlanner') IS NULL CREATE LOGIN [IIS APPPOOL\MealPlanner] FROM WINDOWS WITH DEFAULT_DATABASE = [MealPlanner];"
+  sqlcmd -S lpc:. -E -C -I -b -d MealPlanner -Q "IF USER_ID(N'IIS APPPOOL\MealPlanner') IS NULL CREATE USER [IIS APPPOOL\MealPlanner] FOR LOGIN [IIS APPPOOL\MealPlanner]; ALTER ROLE db_owner ADD MEMBER [IIS APPPOOL\MealPlanner];"
+  ```
+
+  The login gets no server roles. (Use `sqlcmd -I` for any statement that writes; without it SQL Server refuses writes
+  to tables with filtered indexes.)
 - If `Microsoft.AspNetCore.App 10.x` is missing: Marc installs the **ASP.NET Core 10 Hosting Bundle** from
   https://dotnet.microsoft.com/download/dotnet/10.0, then runs `iisreset`.
+  Visual Studio also installs that runtime (and an older ASP.NET Core Module) without the bundle, so check the bundle
+  itself: *Settings -> Apps* must list **Microsoft .NET 10.x - Windows Server Hosting** (`install.ps1` checks this too).
 
 ## 2. Install (Marc runs this in an elevated PowerShell)
 
 ```powershell
 cd <this folder>
-.\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-It asks for the Windows account the app runs as (default: Marc's own). That account is what SQL Server sees, so
-Windows login works without a password in the connection string. The script can be run again safely.
+(`-ExecutionPolicy Bypass` applies to this one call only; Windows PowerShell refuses to run scripts on a machine whose
+policy is still *Restricted*. The same goes for `update.ps1`.)
+
+The app pool runs as `IIS AppPool\MealPlanner`. That account is what SQL Server sees, so Windows login works without a
+password anywhere. To run it as a specific Windows account instead, pass `-AppPoolCredential (Get-Credential)`; a
+Microsoft account needs its account password there, not the PIN. The script can be run again safely.
 
 What it sets, and why:
 - App pool *No Managed Code*, **AlwaysRunning**, idle time-out **0**, no periodic recycling, site **Preload Enabled**,
@@ -98,7 +113,7 @@ What it sets, and why:
 
 Edit `C:\inetpub\MealPlanner\appsettings.Production.json` (it is never overwritten by updates):
 - `ConnectionStrings:mealplanner`: the Data Source from step 1.
-- `Users`: Marc's and Pia's e-mail and password. Marc types the passwords. Rules: at least 10 characters with upper case,
+- `Users`: Marc's and Pia's e-mail and password. Marc types the passwords. Rules: at least 8 characters with upper case,
   lower case, a digit and a symbol. Users are created on the first start only; afterwards the passwords can be removed
   from the file (changing them here later has no effect).
 
@@ -123,6 +138,7 @@ If something fails:
 | --- | --- |
 | HTTP 500.19 | Hosting Bundle missing, or installed without `iisreset` afterwards. |
 | HTTP 500.30 | The app could not start. Set `stdoutLogEnabled="true"` in `C:\inetpub\MealPlanner\web.config`, recycle, read `logs\stdout_*.log`; set it back afterwards. Also check *Event Viewer -> Application*. |
+| HTTP 503, WAS events 5021/5057 | The app pool's Windows account or password is wrong; the pool is disabled. Fix it and `Start-WebAppPool MealPlanner`. |
 | "Login failed for user ..." | The app pool account has no SQL login, or no rights to create/use the database (step 1). |
 | Every request takes ~15 s | Data Source uses TCP while TCP is disabled; use `lpc:`. |
 | Jobs only run when someone uses the app | App pool not AlwaysRunning, site not Preload Enabled, or Application Initialization not installed. |

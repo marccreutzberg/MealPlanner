@@ -77,7 +77,7 @@ cd web && npm ci
    ```bash
    dotnet user-secrets set "Users:0:Email" "marc@example.com" --project src/MealPlanner.Api
    dotnet user-secrets set "Users:0:DisplayName" "Marc" --project src/MealPlanner.Api
-   dotnet user-secrets set "Users:0:Password" "<at least 10 chars, upper, lower, digit, symbol>" --project src/MealPlanner.Api
+   dotnet user-secrets set "Users:0:Password" "<at least 8 chars, upper, lower, digit, symbol>" --project src/MealPlanner.Api
    dotnet user-secrets set "Users:1:Email" "pia@example.com" --project src/MealPlanner.Api
    dotnet user-secrets set "Users:1:DisplayName" "Pia" --project src/MealPlanner.Api
    dotnet user-secrets set "Users:1:Password" "<...>" --project src/MealPlanner.Api
