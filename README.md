@@ -128,4 +128,7 @@ Update `deploy/.env.example` if parameters were added.
 ## Not in phase 1
 
 Tjek offers, matching, MCP and API keys (phase 2), the Angular PWA and the shopping list (phase 3),
-recipes and meal plans (phase 4), purchase rhythm (phase 5). Daily SQL backup to Seafile is not set up yet.
+recipes and meal plans (phase 4), purchase rhythm (phase 5).
+
+Backup is parked: spec section 9 says daily SQL backup copied to Seafile, but Seafile runs on the same NUC,
+so it would not survive losing the machine. Needs an off-site target before it is worth building.
