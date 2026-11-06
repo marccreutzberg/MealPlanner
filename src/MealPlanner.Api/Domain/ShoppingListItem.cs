@@ -8,7 +8,7 @@ public class ShoppingListItem
     public string Name { get; set; } = "";
     public string? Quantity { get; set; }
 
-    /// <summary>Brand or variant that narrows the match, e.g. "Castello" or "rigtigt smør".</summary>
+    /// <summary>Brand or variant that narrows the match, e.g. "Castello" or "rigtigt smør, ikke smørbar".</summary>
     public string? Variant { get; set; }
 
     /// <summary>Groups items on the trip, e.g. "Bagning". Comes from a recipe or is set by hand.</summary>
@@ -28,6 +28,7 @@ public class ShoppingListItem
     public Store? FlaggedStore { get; set; }
     public StoreFlagSource? FlagSource { get; set; }
 
+    /// <summary>The offer the item was added from; its last valid day is shown with the flag.</summary>
     public int? OfferId { get; set; }
     public Offer? Offer { get; set; }
 
@@ -36,8 +37,52 @@ public class ShoppingListItem
     public string? AddedByUserId { get; set; }
     public User? AddedByUser { get; set; }
     public DateTimeOffset AddedAt { get; set; }
+
+    public void FlagTo(int storeId, StoreFlagSource source, int? offerId = null)
+    {
+        FlaggedStoreId = storeId;
+        FlagSource = source;
+        OfferId = source == StoreFlagSource.Offer ? offerId : null;
+    }
+
+    public void ClearFlag()
+    {
+        FlaggedStoreId = null;
+        FlagSource = null;
+        OfferId = null;
+    }
+
+    /// <summary>Marks the item bought and returns the purchase to remember for the buying rhythm.</summary>
+    public PurchaseHistoryEntry MarkBought(int householdId, int? storeId, decimal? price, DateTimeOffset now)
+    {
+        IsBought = true;
+        BoughtAt = now;
+        return new PurchaseHistoryEntry
+        {
+            HouseholdId = householdId,
+            ItemName = Name,
+            Quantity = Quantity,
+            StoreId = storeId ?? FlaggedStoreId ?? PlannedStoreId,
+            Price = price,
+            BoughtAt = now,
+        };
+    }
+
+    public void MarkNotBought()
+    {
+        IsBought = false;
+        BoughtAt = null;
+    }
+
+    /// <summary>The same item added twice: keep one line and show both amounts ("2 + 1", "250 g + 175 g").</summary>
+    public void AddQuantity(string? quantity)
+    {
+        if (string.IsNullOrWhiteSpace(quantity)) return;
+        Quantity = string.IsNullOrWhiteSpace(Quantity) ? quantity.Trim() : $"{Quantity} + {quantity.Trim()}";
+    }
 }
 
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StoreFlagSource>))]
 public enum StoreFlagSource
 {
     Manual,

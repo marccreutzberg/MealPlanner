@@ -30,6 +30,13 @@ public class FuzzySearchTests
     }
 
     [Fact]
+    public void One_typo_ranks_above_two()
+    {
+        Assert.True(FuzzySearch.Score("kyllingbrst", "Kyllingebryst") < FuzzySearch.Score("kyllingbryst", "Kyllingebryst"));
+        Assert.Equal(0, FuzzySearch.Score("hyteost", "Rygeost")); // two typos in a 7-letter word
+    }
+
+    [Fact]
     public void Ranks_exact_then_prefix_then_contains_then_typo()
     {
         var exact = FuzzySearch.Score("smør", "Smør");

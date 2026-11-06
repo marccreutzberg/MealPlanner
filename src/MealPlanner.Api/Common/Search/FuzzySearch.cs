@@ -51,11 +51,12 @@ public static class FuzzySearch
         // Compare with the whole word and with its start, so typos also work while still typing.
         var prefix = word.Length > queryWord.Length ? word[..queryWord.Length] : word;
         var distance = Math.Min(DamerauLevenshtein(queryWord, word), DamerauLevenshtein(queryWord, prefix));
-        return distance <= allowed ? WordTypo : 0;
+        // One typo ranks above two, so "hyteost" finds Hytteost before Rygeost.
+        return distance <= allowed ? WordTypo / distance : 0;
     }
 
-    /// <summary>One typo in short words, two in long ones, none in very short ones.</summary>
-    public static int MaxTypos(string word) => word.Length switch { < 3 => 0, <= 6 => 1, _ => 2 };
+    /// <summary>One typo in short words, two in long ones (8+ letters), none in very short ones.</summary>
+    public static int MaxTypos(string word) => word.Length switch { < 3 => 0, < 8 => 1, _ => 2 };
 
     /// <summary>
     /// Lower case; "ae", "oe", "aa" become "æ", "ø", "å"; hyphens become spaces; everything but letters and digits removed.
