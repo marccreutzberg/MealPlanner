@@ -11,7 +11,7 @@ namespace MealPlanner.Api.Common.Data;
 public static class SeedData
 {
     // Sort order follows the walk through the home store (REMA 1000).
-    private static readonly (string Name, string Color)[] Categories =
+    internal static readonly (string Name, string Color)[] Categories =
     [
         ("Frugt og grønt", "#5a9a3f"), ("Brød", "#d9921e"), ("Kød, fisk og fjerkræ", "#e04b3c"),
         ("Pålæg", "#a8653f"), ("Mejeri", "#7aa9d9"), ("Kolonial", "#7d685c"), ("Frost", "#5bb5c9"),
@@ -89,19 +89,22 @@ public static class SeedData
     ];
 
     // Starter dictionary for automatic categorisation of shopping items (on top of the ingredients above).
-    private static readonly (string Category, string[] Terms)[] CategoryTerms =
+    // Words are matched whole or as the end of a compound ("rugbrød" -> "brød"), so heads of compounds go here.
+    // Internal so classifier tests run against the real dictionary.
+    internal static readonly (string Category, string[] Terms)[] CategoryTerms =
     [
-        ("Frugt og grønt", ["æble", "pære", "appelsin", "citron", "lime", "vindruer", "bær", "blåbær", "hindbær", "jordbær", "melon", "kiwi", "avocado", "tomat", "cherrytomater", "salat", "feldsalat", "spinat", "squash", "champignon", "svampe", "blomkål", "selleri", "pastinak", "rødbede", "hvidløg", "ingefær", "persille", "basilikum", "purløg", "majs", "ærter", "bønner", "sødkartofler", "mango", "ananas", "klementiner", "mandariner"]),
-        ("Brød", ["brød", "rugbrød", "franskbrød", "boller", "rundstykker", "bagels", "toastbrød", "pitabrød", "flutes", "croissant", "knækbrød", "kiks", "burgerboller", "pølsebrød", "kagebund", "lagkagebunde"]),
-        ("Kød, fisk og fjerkræ", ["kød", "kylling", "frikadeller", "fars", "hakket", "steg", "filet", "fisk", "tun", "makrel", "kalkun", "lam", "vildt"]),
-        ("Pålæg", ["pålæg", "kyllingepålæg", "skinke", "hamburgerryg", "rullepølse", "spegepølse", "salami", "leverpostej", "postej", "hønsesalat", "tunsalat", "makrel i tomat", "pålægschokolade", "smørepålæg"]),
-        ("Mejeri", ["smør", "smørbar", "yoghurt", "skyr", "ymer", "a38", "creme fraiche", "ost", "skæreost", "revet ost", "mozzarella", "feta", "parmesan", "flødeost", "smøreost", "kærnemælk", "piskefløde", "madlavningsfløde"]),
-        ("Kolonial", ["mel", "hvedemel", "sukker", "flormelis", "salt", "peber", "krydderi", "olie", "olivenolie", "eddike", "ketchup", "remoulade", "mayonnaise", "sennep", "bouillon", "hakkede tomater", "tomatpure", "kokosmælk", "havregryn", "müsli", "cornflakes", "honning", "marmelade", "nutella", "nudler", "linser", "kikærter", "frugtstænger", "rosiner", "nødder", "gær", "bagepulver", "vaniljesukker", "kakao pulver", "konserves", "dåsetomater"]),
-        ("Frost", ["is", "frosne", "frost", "pommes frites", "frosne ærter", "pizza", "fiskefilet frost", "kyllingenuggets"]),
-        ("Drikkevarer", ["sodavand", "juice", "saft", "vand", "danskvand", "kaffe", "te", "øl", "vin", "cola", "squash drik", "energidrik", "kakaomælk"]),
-        ("Slik og snacks", ["slik", "chips", "chokolade", "popcorn", "kage", "småkager", "vingummi", "lakrids", "saltstænger", "flødeboller"]),
-        ("Husholdning", ["køkkenrulle", "køkkenruller", "opvaskemiddel", "opvasketabs", "vaskepulver", "vaskemiddel", "skyllemiddel", "affaldsposer", "skraldeposer", "fryseposer", "bagepapir", "sølvpapir", "film", "madopbevaring", "stearinlys", "batterier", "rengøring", "klude", "svampe til opvask", "toiletrens"]),
-        ("Personlig pleje", ["tandpasta", "tandbørste", "shampoo", "balsam", "sæbe", "håndsæbe", "deodorant", "bleer", "vatrondeller", "plaster", "solcreme", "barberskrabere", "hårelastikker"]),
+        ("Frugt og grønt", ["frugt", "grønt", "grøntsager", "æble", "æbler", "pære", "pærer", "appelsin", "appelsiner", "citron", "citroner", "lime", "limefrugter", "vindruer", "blommer", "nektariner", "ferskner", "abrikoser", "granatæble", "grapefrugt", "dadler", "figner", "bær", "blåbær", "hindbær", "jordbær", "solbær", "ribs", "brombær", "tranebær", "melon", "vandmelon", "kiwi", "avocado", "mango", "ananas", "passionsfrugt", "klementiner", "mandariner", "rabarber", "tomat", "tomater", "cherrytomater", "salat", "feldsalat", "rucola", "icebergsalat", "hjertesalat", "spinat", "squash", "aubergine", "champignon", "champignoner", "svampe", "kantareller", "østershatte", "blomkål", "rosenkål", "grønkål", "spidskål", "kinakål", "pak choi", "selleri", "bladselleri", "knoldselleri", "fennikel", "pastinak", "persillerod", "rødbede", "rødbeder", "radiser", "jordskokker", "hvidløg", "skalotteløg", "forårsløg", "ingefær", "chili", "persille", "basilikum", "purløg", "dild", "koriander", "mynte", "timian", "rosmarin", "majs", "majskolber", "ærter", "sukkerærter", "bønner", "bønnespirer", "sødkartofler", "kokosnød"]),
+        ("Brød", ["brød", "rugbrød", "franskbrød", "surdejsbrød", "fuldkornsbrød", "sandwichbrød", "toast", "toastbrød", "ciabatta", "baguette", "flutes", "boller", "grovboller", "teboller", "rundstykker", "bagels", "pitabrød", "naanbrød", "fladbrød", "croissant", "kanelsnegle", "wienerbrød", "tebirkes", "knækbrød", "kiks", "burgerboller", "pølsebrød", "hotdogbrød", "kagebund", "lagkagebunde", "pandekager", "scones"]),
+        ("Kød, fisk og fjerkræ", ["kød", "oksekød", "grisekød", "svinekød", "kalvekød", "lammekød", "kylling", "kyllingevinger", "kyllingeunderlår", "kalkunbryst", "frikadeller", "frikadellefars", "fars", "hakket", "steg", "tyksteg", "culottesteg", "filet", "bøf", "bøffer", "schnitzler", "kødboller", "pulled pork", "fisk", "fiskefilet", "torsk", "rødspætte", "sild", "tun", "makrel", "muslinger", "kammuslinger", "krabbe", "rogn", "stenbiderrogn", "kalkun", "lam", "vildt"]),
+        ("Pålæg", ["pålæg", "kyllingepålæg", "skinke", "hamburgerryg", "rullepølse", "spegepølse", "kødpølse", "salami", "pepperoni", "chorizo", "serranoskinke", "parmaskinke", "roastbeef", "pastrami", "leverpostej", "postej", "hønsesalat", "tunsalat", "rejesalat", "æggesalat", "karrysalat", "italiensk salat", "makrel i tomat", "pålægschokolade", "smørepålæg"]),
+        ("Mejeri", ["smør", "smørbar", "plantesmør", "lurpak", "milbona", "kærgården", "margarine", "yoghurt", "græsk yoghurt", "skyr", "ymer", "a38", "tykmælk", "kefir", "creme fraiche", "cremefraiche", "ost", "skæreost", "revet ost", "mozzarella", "feta", "parmesan", "cheddar", "brie", "camembert", "danbo", "havarti", "castello", "gouda", "rygeost", "mascarpone", "ricotta", "halloumi", "flødeost", "smøreost", "kærnemælk", "piskefløde", "madlavningsfløde", "havredrik", "havremælk", "sojadrik", "mandeldrik", "koldskål", "budding", "risalamande"]),
+        ("Kolonial", ["mel", "hvedemel", "rugmel", "speltmel", "grahamsmel", "majsstivelse", "kartoffelmel", "sukker", "rørsukker", "farin", "flormelis", "sirup", "salt", "peber", "krydderi", "kanel", "kardemomme", "nelliker", "muskatnød", "karry", "paprika", "spidskommen", "oregano", "laurbærblade", "vaniljestang", "kakao", "olie", "rapsolie", "olivenolie", "eddike", "balsamico", "ketchup", "remoulade", "mayonnaise", "sennep", "dressing", "bouillon", "fond", "sovsekulør", "tomatsauce", "pesto", "soja", "sojasauce", "fiskesauce", "østerssauce", "sweet chili", "hakkede tomater", "flåede tomater", "passata", "tomatpure", "kokosmælk", "kidneybønner", "sorte bønner", "linser", "kikærter", "bulgur", "couscous", "quinoa", "perlespelt", "nudler", "risnudler", "makaroni", "havregryn", "müsli", "granola", "cornflakes", "honning", "marmelade", "syltetøj", "nutella", "peanutbutter", "jordnøddesmør", "frugtstænger", "rosiner", "nødder", "mandler", "hasselnødder", "valnødder", "cashewnødder", "solsikkekerner", "græskarkerner", "chiafrø", "hørfrø", "kokosmel", "marcipan", "overtræk", "blå birkes", "birkes", "gær", "tørgær", "bagepulver", "natron", "vaniljesukker", "kakao pulver", "syltede agurker", "asier", "kapers", "oliven", "soltørrede tomater", "tacokrydderi", "tacoskaller", "salsa", "konserves", "dåsetomater", "babymad", "grød"]),
+        ("Frost", ["is", "flødeis", "sorbet", "isvafler", "frosne", "frossen", "frost", "pommes frites", "kartoffelbåde", "frosne ærter", "frosne bær", "wokgrøntsager", "pizza", "fiskepinde", "fiskefilet frost", "kyllingenuggets", "forårsruller", "færdigretter", "butterdej", "æbleskiver", "isterninger"]),
+        ("Drikkevarer", ["sodavand", "juice", "appelsinjuice", "æblejuice", "smoothie", "saft", "saftevand", "vand", "danskvand", "kildevand", "mineralvand", "cola", "pepsi", "fanta", "faxe kondi", "sprite", "tonic", "iste", "capri-sun", "kaffe", "kaffebønner", "kaffekapsler", "te", "øl", "maltøl", "cider", "vin", "rødvin", "hvidvin", "rosévin", "cava", "champagne", "gløgg", "spiritus", "snaps", "gin", "vodka", "rom", "whisky", "likør", "squash drik", "energidrik", "kakaomælk", "chokolademælk"]),
+        ("Slik og snacks", ["slik", "bland selv slik", "chips", "tortillachips", "chokolade", "chokoladebar", "popcorn", "kage", "småkager", "vafler", "vingummi", "lakrids", "karamel", "karameller", "tyggegummi", "pastiller", "slikkepinde", "konfekt", "pebernødder", "saltstænger", "peanuts", "snacknødder", "dip", "flødeboller"]),
+        ("Husholdning", ["køkkenrulle", "køkkenruller", "servietter", "opvaskemiddel", "opvasketabs", "maskinopvask", "vaskepulver", "vaskemiddel", "skyllemiddel", "pletfjerner", "affaldsposer", "skraldeposer", "fryseposer", "frysebøtter", "bagepapir", "sølvpapir", "alufolie", "plastfolie", "film", "madopbevaring", "stearinlys", "fyrfadslys", "tændstikker", "elpærer", "batterier", "rengøring", "rengøringsmiddel", "glasrens", "kalkfjerner", "afkalker", "toiletrens", "wc rens", "klude", "karklude", "opvaskebørste", "svampe til opvask", "skuresvampe", "engangshandsker"]),
+        ("Personlig pleje", ["tandpasta", "tandbørste", "tandtråd", "mundskyl", "shampoo", "balsam", "hårvoks", "hårspray", "sæbe", "håndsæbe", "showergel", "deo", "deodorant", "bodylotion", "håndcreme", "ansigtscreme", "læbepomade", "barberskum", "barberblade", "barberskrabere", "bleer", "natbleer", "vådservietter", "pusleservietter", "bind", "tamponer", "trusseindlæg", "vatrondeller", "vatpinde", "plaster", "solcreme", "hovedpinepiller", "vitaminer", "hårelastikker"]),
+        ("Andet", ["gavekort", "blomster", "buket", "frimærker", "kattemad", "hundemad", "kattegrus", "dyrefoder", "indkøbsposer"]),
     ];
 
     // The v1 household (spec 2 and 12.1): Odder, 20 km radius, third store only when it saves more than 50 kr.
@@ -120,6 +123,7 @@ public static class SeedData
     {
         var db = (AppDbContext)context;
         await SeedReferenceDataAsync(db, ct);
+        await SeedMissingCategoryRulesAsync(db, ct);
         await SeedHouseholdAsync(db, ct);
     }
 
@@ -147,10 +151,22 @@ public static class SeedData
             });
         }
 
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// The dictionary grows between versions, so missing shared words are added on every start.
+    /// Existing rules (also edited ones) are never touched.
+    /// </summary>
+    private static async Task SeedMissingCategoryRulesAsync(AppDbContext db, CancellationToken ct)
+    {
+        var byName = await db.Categories.ToDictionaryAsync(c => c.Name, ct);
+        var existing = (await db.CategoryRules.Where(r => r.HouseholdId == null).Select(r => r.Term).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         foreach (var (category, terms) in CategoryTerms)
-            foreach (var term in terms.Where(seen.Add))
-                db.CategoryRules.Add(new CategoryRule { Term = term, Category = byName[category] });
+            foreach (var term in terms.Where(existing.Add))
+                db.CategoryRules.Add(new CategoryRule { Term = term, CategoryId = byName[category].Id });
 
         await db.SaveChangesAsync(ct);
     }
