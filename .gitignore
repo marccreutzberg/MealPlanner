@@ -481,5 +481,5 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# MealPlanner: secrets for docker compose on the NUC
-deploy/.env
+# MealPlanner: production settings with secrets live only on the NUC
+**/appsettings.Production.json

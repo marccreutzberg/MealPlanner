@@ -8,11 +8,6 @@
     <HangfireVersion>1.8.25</HangfireVersion>
   </PropertyGroup>
 
-  <ItemGroup Label="Aspire hosting">
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
-  </ItemGroup>
-
   <ItemGroup Label="Service defaults">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />

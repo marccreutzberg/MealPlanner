@@ -1,13 +1,14 @@
 # MealPlanner
 
 Shopping list, offers and meal plan for one household. The requirements live in `SPEC.md` (Danish).
-Phase 1 (foundation) is in place: Aspire, API, EF Core on SQL Server, Hangfire, seed data and cookie login for two users.
+Phase 1 (foundation) is in place: Aspire for local development, API, EF Core on SQL Server, Hangfire, seed data
+and cookie login for two users. In production the API runs in IIS on the NUC against its existing SQL Server.
 
 ## Structure
 
 ```
 src/
-  MealPlanner.AppHost/          Aspire orchestration (local run + compose generation for the NUC)
+  MealPlanner.AppHost/          Aspire orchestration (local development only)
   MealPlanner.ServiceDefaults/  OpenTelemetry, health checks
   MealPlanner.Api/
     Domain/                     Entities
@@ -15,13 +16,12 @@ src/
     Common/Auth/                Identity + cookie setup, user seeding from configuration
     Common/Jobs/                Hangfire setup and dashboard protection
     Features/Auth/              Login, logout, current user, login page
-deploy/                         Generated docker-compose.yaml and .env.example
 ```
 
 ## Run locally
 
 Requirements: .NET SDK 10, the Aspire CLI (`dotnet tool install -g Aspire.Cli --version 13.6.4`) and a local SQL Server.
-No Docker is needed locally: the AppHost points the API at your own SQL Server.
+No Docker is needed.
 
 1. Check the connection string in `src/MealPlanner.AppHost/appsettings.Development.json`.
    It uses `np:localhost` (named pipes) because TCP is disabled on the dev machine. Change it if your SQL Server differs.
@@ -74,56 +74,72 @@ dotnet ef migrations add <Name> --project src/MealPlanner.Api --output-dir Commo
 
 They are applied automatically at the next startup.
 
-## Run on the NUC (Docker Compose)
+## Run on the NUC (IIS)
 
-The NUC runs Docker Desktop with Linux containers (WSL2); the SQL Server image only exists for Linux.
-`deploy/docker-compose.yaml` contains three services:
+The API is a plain ASP.NET Core app hosted in IIS, using the SQL Server that already runs on the NUC.
+Cloudflare Tunnel (`cloudflared` as a Windows service) is the only way in from the internet.
 
-- `sql`: SQL Server 2022 as Express (`MSSQL_PID=Express`), data in the `mealplanner-sql` volume.
-- `api`: built from this repository, listening on port 8080 on the NUC.
-- `cloudflared`: the Cloudflare Tunnel, the only way in from the internet.
+### One-time setup
 
-### First time
+1. **IIS features:** install the [ASP.NET Core 10 Hosting Bundle](https://dotnet.microsoft.com/download/dotnet/10.0)
+   and the IIS feature *Application Initialization* (needed for Hangfire, see below). Restart IIS afterwards.
+
+2. **App pool** `MealPlanner`:
+   - .NET CLR version: *No Managed Code*.
+   - Start Mode: **AlwaysRunning**, Idle Time-out: **0**.
+   - Recycling: clear *Regular Time Interval* (default 1740 minutes).
+
+   Hangfire runs inside the app. If IIS stops the app pool after 20 idle minutes or recycles it,
+   no background jobs run until the next request. Phase 2's daily offer fetch at 06:00 depends on these settings.
+
+3. **Site** `MealPlanner`: physical path e.g. `C:\inetpub\MealPlanner`, app pool `MealPlanner`,
+   binding `http` on port 8080, **Preload Enabled = True** (Advanced Settings).
+
+4. **SQL Server login** for the app pool identity, so the connection string needs no password:
+
+   ```sql
+   CREATE LOGIN [IIS APPPOOL\MealPlanner] FROM WINDOWS;
+   -- After the first start has created the database:
+   USE MealPlanner;
+   CREATE USER [IIS APPPOOL\MealPlanner] FOR LOGIN [IIS APPPOOL\MealPlanner];
+   ALTER ROLE db_owner ADD MEMBER [IIS APPPOOL\MealPlanner];
+   ```
+
+   The app creates the database itself on first start, which needs `dbcreator` for that one start:
+   `ALTER SERVER ROLE dbcreator ADD MEMBER [IIS APPPOOL\MealPlanner];` (remove it again afterwards if you like),
+   or create an empty `MealPlanner` database by hand first.
+
+5. **Settings with secrets** in `C:\inetpub\MealPlanner\appsettings.Production.json` (only on the NUC, git-ignored):
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "mealplanner": "Data Source=np:localhost;Initial Catalog=MealPlanner;Integrated Security=true;TrustServerCertificate=true"
+     },
+     "Users": [
+       { "Email": "marc@example.com", "DisplayName": "Marc", "Password": "<...>" },
+       { "Email": "pia@example.com", "DisplayName": "Pia", "Password": "<...>" }
+     ]
+   }
+   ```
+
+   `np:localhost` uses named pipes; with TCP disabled on SQL Server, `localhost` costs about 15 s per new connection under IIS.
+   The passwords are only read on the very first start; you can remove them from the file afterwards.
+
+6. **Cloudflare Tunnel:** in Cloudflare Zero Trust (Networks > Tunnels) create a tunnel, install the Windows connector
+   with the command it shows, and add a public hostname pointing to `http://localhost:8080`.
+   The Hangfire dashboard answers 404 to anything that came through the tunnel, so reach it on the LAN or via WireGuard:
+   `http://<nuc>:8080/hangfire`.
+
+### Deploy a new version
 
 ```bash
-git clone <repo> MealPlanner
-cd MealPlanner
-copy deploy\.env.example deploy\.env
+dotnet publish src/MealPlanner.Api -c Release -o publish
 ```
 
-Fill in `deploy\.env` (SQL password, the two users, tunnel token). Then:
-
-```bash
-docker compose -f deploy/docker-compose.yaml up -d --build
-```
-
-The API waits for SQL Server (it retries for about two minutes), applies migrations, seeds and creates the users.
-Follow it with `docker compose -f deploy/docker-compose.yaml logs -f api`.
-
-### New version
-
-```bash
-git pull
-docker compose -f deploy/docker-compose.yaml up -d --build
-```
-
-### Cloudflare Tunnel
-
-Create the tunnel in Cloudflare Zero Trust (Networks > Tunnels) and put its token in `.env`.
-Add a public hostname pointing to `http://api:8080` (the compose service name).
-The Hangfire dashboard answers 404 to anything that came through the tunnel, so reach it on the LAN or via WireGuard:
-`http://<nuc>:8080/hangfire`.
-
-### Changing the deployment
-
-`deploy/docker-compose.yaml` is generated from `src/MealPlanner.AppHost/AppHost.cs`. Change the AppHost, then regenerate:
-
-```bash
-aspire publish --project src/MealPlanner.AppHost/MealPlanner.AppHost.csproj -o deploy
-```
-
-This also rewrites `deploy/.env` with empty values on the dev machine; that file is git-ignored.
-Update `deploy/.env.example` if parameters were added.
+Copy `publish\` to the NUC. To avoid locked DLLs, put an `app_offline.htm` in `C:\inetpub\MealPlanner` first,
+copy the files (never overwrite `appsettings.Production.json`), then delete `app_offline.htm`.
+Migrations run automatically when the app starts.
 
 ## Not in phase 1
 

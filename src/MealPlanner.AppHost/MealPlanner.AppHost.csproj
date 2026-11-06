@@ -10,9 +10,4 @@
     <ProjectReference Include="..\MealPlanner.Api\MealPlanner.Api.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.SqlServer" />
-    <PackageReference Include="Aspire.Hosting.Docker" />
-  </ItemGroup>
-
 </Project>

@@ -11,7 +11,7 @@ Kilde: kravspecifikationen i Claude (Docs) plus fund fra prototype og afprøvnin
 
 MealPlanner gør ugens indkøb og aftensmad billigere og nemmere: én fælles indkøbsliste, der kender ugens tilbud fra REMA 1000, Netto, Kvickly, Løvbjerg, Lidl og Coop 365, og som Claude kan arbejde med via MCP.
 
-Brugere i v1 er Marc og Pia i én husstand i Odder. Appen hostes på Marcs NUC (Windows + Docker) og er samtidig et lærings- og udfordringsprojekt i forhold til den stak, vi normalt bruger på arbejdet.
+Brugere i v1 er Marc og Pia i én husstand i Odder. Appen hostes på Marcs NUC (Windows + IIS) og er samtidig et lærings- og udfordringsprojekt i forhold til den stak, vi normalt bruger på arbejdet.
 
 Succeskriterier for v1:
 
@@ -148,7 +148,7 @@ flowchart TB
   PWA["Angular PWA<br/>indkøbsliste og tilbud"] --> CF
   CL["Claude-appen<br/>custom connector (MCP)"] --> CF
   CF["Cloudflare Tunnel · HTTPS · ingen åbne porte"]
-  subgraph API["MealPlanner.Api · ASP.NET Core i Docker"]
+  subgraph API["MealPlanner.Api · ASP.NET Core i IIS"]
     EP["Minimal API endpoints /api/*"] --> SL
     MCP["MCP-server /mcp"] --> SL
     SL["Feature slices: én handler pr. use case<br/>Offers · ShoppingList · Recipes · MealPlans"]
@@ -164,8 +164,8 @@ flowchart TB
 | Del | Valg |
 | --- | --- |
 | Runtime | .NET 10, ASP.NET Core Minimal APIs |
-| Orkestrering | .NET Aspire lokalt, genereret docker-compose til NUC'en |
-| Data | EF Core mod SQL Express (container, `MSSQL_PID=Express`) |
+| Orkestrering | .NET Aspire lokalt; IIS på NUC'en |
+| Data | EF Core mod den SQL Server, der allerede kører på NUC'en |
 | Baggrundsjobs | Hangfire med SQL Server-storage i samme database |
 | MCP | `ModelContextProtocol.AspNetCore`, HTTP-transport på `/mcp` |
 | Frontend | Angular PWA, danske tekster i i18n-filer |
@@ -235,15 +235,15 @@ Det fælles/husstand-skel betyder, at en ny husstand i en anden by kun kræver n
 
 ## 9. Sikkerhed og drift
 
-Alt kører på NUC'en i Docker. Den eneste vej ind udefra er en Cloudflare Tunnel, så der åbnes ingen porte i routeren.
+Alt kører på NUC'en i IIS. Den eneste vej ind udefra er en Cloudflare Tunnel, så der åbnes ingen porte i routeren.
 
 - **Login:** ASP.NET Identity med to brugere i v1 og cookie-login til Angular. Ingen åben registrering; brugere oprettes af Marc. Clerk er fravalgt (kan ikke selvhostes).
 - **MCP-login:** en API-nøgle pr. bruger i headeren `X-Api-Key`, som Claude-connectoren sender på hvert kald (felt "Request headers" i custom connector). Nøglen gemmes kun som hash og er koblet til bruger og husstand. Nøgler oprettes og tilbagekaldes af Marc. Cloudflare tillader kun Anthropics IP-adresser på `/mcp`. Connectoren oprettes på private Claude-konti, ikke Team-kontoen, hvor alle medlemmer deler én header-nøgle. **Fallback**, hvis header-feltet ikke findes på kontoen: hemmelig sti `/mcp/<lang tilfældig nøgle>` uden login, låst til Anthropics IP-adresser. OAuth (OpenIddict) kommer først med flere husstande.
 - **Hangfire-dashboard:** kun for indloggede brugere og kun via WireGuard.
 - **Hemmeligheder:** connection strings og nøgler i miljøvariabler eller user secrets, aldrig i Git.
-- **Backup:** daglig SQL-backup med 14 dages historik, kopieret til Seafile.
+- **Backup:** parkeret. Seafile ligger på samme NUC og beskytter derfor ikke mod at miste maskinen; kræver et mål uden for huset.
 - **Overvågning:** Aspire-dashboard lokalt. Mislykkede jobs synlige i Hangfire. Fejlede Tjek-hentninger logges med antal tilbud pr. kæde, så et ændret API opdages samme dag.
-- **Opdatering:** docker-compose genereret af Aspire. Ny version = pull, build, `docker compose up -d`. EF-migrationer køres ved opstart.
+- **Opdatering:** `dotnet publish` og kopi til IIS bag `app_offline.htm`. EF-migrationer køres ved opstart. App-poolen kører AlwaysRunning, så Hangfire-jobs ikke stopper.
 
 ## 10. Åbne punkter og risici
 
