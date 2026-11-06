@@ -1,3 +1,4 @@
+using MealPlanner.Api.Common.Lists;
 using MealPlanner.Api.Common.Realtime;
 
 namespace MealPlanner.Api.Features.ShoppingList;
@@ -8,6 +9,7 @@ public static class ShoppingListModule
     {
         services.AddSignalR();
         services.AddScoped<ListNotifier>();
+        services.AddScoped<ShoppingListWriter>();
         services.AddScoped<GetList.Handler>();
         services.AddScoped<AddItems.Handler>();
         services.AddScoped<UpdateItem.Handler>();

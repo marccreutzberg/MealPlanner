@@ -30,7 +30,7 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
                  "a store to buy it in ('Netto'), or an offer id from search_offers to flag it to that offer.")]
     public async Task<AddItems.Response> AddToShoppingListAsync(
         AddItems.Handler handler,
-        [Description("Items to add.")] List<AddItems.NewItem> items,
+        [Description("Items to add.")] List<ShoppingListWriter.NewItem> items,
         CancellationToken cancellationToken = default) =>
         Unwrap(await handler.HandleAsync(new AddItems.Command(items), User.GetHouseholdId(), User.GetUserId(), cancellationToken));
 
@@ -64,7 +64,7 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
     public async Task<BuildTrip.Trip> BuildShoppingListAsync(
         AddItems.Handler addItems,
         BuildTrip.Handler buildTrip,
-        [Description("Items to add before planning; same fields as add_to_shopping_list.")] List<AddItems.NewItem>? extraItems = null,
+        [Description("Items to add before planning; same fields as add_to_shopping_list.")] List<ShoppingListWriter.NewItem>? extraItems = null,
         CancellationToken cancellationToken = default)
     {
         if (extraItems is { Count: > 0 })
