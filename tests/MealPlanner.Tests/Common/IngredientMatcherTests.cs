@@ -28,6 +28,7 @@ public class IngredientMatcherTests
     [InlineData("Bagekartofler", "Kartofler")]
     [InlineData("Danske frilandsæg", "Æg")]
     [InlineData("Basmati ris", "Ris")]
+    [InlineData("Cocio  eller Blue Keld", "Kakaomælk")]
     public void Matches(string heading, string expected)
     {
         Assert.Equal(expected.Split('|'), Match(heading));
@@ -43,6 +44,20 @@ public class IngredientMatcherTests
     [InlineData("Salling Princip brioche, god pris")]
     [InlineData("Risalamande")]
     [InlineData("❤️xl bøf 300g 🤩‼️")]
+    // False positives seen in the first live fetch (6/11 2026).
+    [InlineData("Sensodyne Tandpasta eller tandbørster soft")]
+    [InlineData("Vaniljepasta eller vaniljestænger")]
+    [InlineData("P-tærter, Carletti juleskum eller Skumbananer")]
+    [InlineData("Toiletpapirholder")]
+    [InlineData("Flæskestegs sandwich med chilimayo")]
+    [InlineData("MADVÆRKET Flødehavarti")]
+    [InlineData("MILBONA Madlavningsjævner med fløde")]
+    [InlineData("Tulip Pålækker pålæg, baconpostej eller salami")]
+    [InlineData("ØGO økologiske søde kartofler")]
+    [InlineData("Spejle æg")]
+    [InlineData("Nescafé kaffe specialiteter el. Nesquik kakao")]
+    [InlineData("Jensens æbleskiver med kakaocreme")]
+    [InlineData("JENSENS Ande- eller flæskestegssauce")]
     [InlineData("")]
     public void Does_not_match(string heading)
     {

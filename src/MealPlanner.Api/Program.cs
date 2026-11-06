@@ -1,4 +1,7 @@
+using Hangfire;
 using MealPlanner.Api.Common.Auth;
+using MealPlanner.Api.Common.Tjek;
+using MealPlanner.Api.Features.Offers;
 using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Common.Jobs;
 using MealPlanner.Api.Features.Auth;
@@ -13,6 +16,10 @@ builder.AddSqlServerDbContext<AppDbContext>("mealplanner", configureDbContextOpt
 builder.AddCookieAuth();
 builder.AddHangfireJobs();
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHttpClient<TjekClient>(c => c.BaseAddress = new Uri(TjekClient.BaseAddress));
+builder.Services.AddScoped<FetchOffersJob>();
+
 var app = builder.Build();
 
 // Before anything else touches the database, including Hangfire's schema setup below.
@@ -26,6 +33,7 @@ app.UseAntiforgery();
 
 app.MapDefaultEndpoints();
 app.MapJobsDashboard();
+FetchOffersJob.Schedule(app.Services.GetRequiredService<IRecurringJobManager>());
 
 Login.Map(app);
 Logout.Map(app);
