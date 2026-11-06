@@ -13,7 +13,7 @@ public static class MealPlanViews
 
     public static async Task<MealPlanDto> LoadAsync(AppDbContext db, int householdId, DateOnly weekStart, CancellationToken ct)
     {
-        var plan = await db.MealPlans.AsNoTracking()
+        var plan = await db.MealPlans.AsNoTracking().AsSplitQuery()
             .Include(p => p.Entries).ThenInclude(e => e.Recipe).ThenInclude(r => r.Ingredients)
             .FirstOrDefaultAsync(p => p.HouseholdId == householdId && p.WeekStart == weekStart, ct);
 

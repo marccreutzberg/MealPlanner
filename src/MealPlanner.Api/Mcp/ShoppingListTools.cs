@@ -3,6 +3,7 @@ using System.Security.Claims;
 using MealPlanner.Api.Common.Auth;
 using MealPlanner.Api.Common.Lists;
 using MealPlanner.Api.Common.Results;
+using MealPlanner.Api.Features.MealPlans;
 using MealPlanner.Api.Features.ShoppingList;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -58,15 +59,24 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
     [McpServerTool(Name = "build_shopping_list", Title = "Plan the shopping trip", Destructive = false)]
     [Description("Plans the shopping trip from the list and today's offers: REMA 1000 always, the store (or stores next " +
                  "to each other) that saves most as number two, a third only when it saves more than the household's " +
-                 "threshold, and items flagged to a store always there. Optionally adds extra items first. Returns the " +
-                 "items per store in driving order with known prices, subtotals, an estimated saving and the trip as a " +
-                 "plain-text checklist to show the user as is.")]
+                 "threshold, and items flagged to a store always there. Optionally puts a week's meal plan on the list " +
+                 "first (amounts summed across dishes; days already on the list are skipped) and adds extra items. " +
+                 "Returns the items per store in driving order with known prices, subtotals, an estimated saving and the " +
+                 "trip as a plain-text checklist to show the user as is.")]
     public async Task<BuildTrip.Trip> BuildShoppingListAsync(
         AddItems.Handler addItems,
+        AddMealPlanToList.Handler addMealPlan,
         BuildTrip.Handler buildTrip,
+        [Description("Any day in a meal plan week (yyyy-MM-dd) whose ingredients should go on the list first.")] DateOnly? mealPlanWeek = null,
         [Description("Items to add before planning; same fields as add_to_shopping_list.")] List<ShoppingListWriter.NewItem>? extraItems = null,
         CancellationToken cancellationToken = default)
     {
+        if (mealPlanWeek is { } week)
+        {
+            var added = await addMealPlan.HandleAsync(week, force: false, User.GetHouseholdId(), User.GetUserId(), cancellationToken);
+            // "Already on the list" is fine here; a missing plan is not.
+            if (!added.IsSuccess && added.Error!.Kind == ErrorKind.NotFound) throw new McpException(added.Error.Message);
+        }
         if (extraItems is { Count: > 0 })
             Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), User.GetHouseholdId(), User.GetUserId(), cancellationToken));
         return await buildTrip.HandleAsync(User.GetHouseholdId(), cancellationToken);

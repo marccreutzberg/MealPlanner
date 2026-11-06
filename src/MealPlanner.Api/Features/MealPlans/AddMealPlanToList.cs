@@ -33,7 +33,7 @@ public static class AddMealPlanToList
         public async Task<Result<Response>> HandleAsync(DateOnly week, bool force, int householdId, string userId, CancellationToken ct)
         {
             var weekStart = MealPlan.MondayOf(week);
-            var plan = await db.MealPlans
+            var plan = await db.MealPlans.AsSplitQuery()
                 .Include(p => p.Entries).ThenInclude(e => e.Recipe).ThenInclude(r => r.Ingredients)
                 .FirstOrDefaultAsync(p => p.HouseholdId == householdId && p.WeekStart == weekStart, ct);
             if (plan is null || plan.Entries.Count == 0) return Error.NotFound($"No meal plan for the week of {weekStart:yyyy-MM-dd}");
