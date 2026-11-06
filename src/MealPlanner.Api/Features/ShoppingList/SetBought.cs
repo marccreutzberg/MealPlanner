@@ -34,8 +34,8 @@ public static class SetBought
             {
                 var storeId = body.StoreId ?? item.FlaggedStoreId ?? item.PlannedStoreId;
                 var offers = await OfferLookup.LoadAsync(db, householdId, DanishTime.Today(clock), ct);
-                var price = offers.ForItem(item.IngredientId, item.Name, item.Variant)
-                    .FirstOrDefault(o => storeId is null || o.StoreId == storeId)?.Price;
+                var price = offers.ForItem(item.IngredientId, item.Name, item.Variant, item.Quantity)
+                    .FirstOrDefault(o => storeId is null || o.StoreId == storeId)?.EffectivePrice;
                 db.PurchaseHistory.Add(item.MarkBought(householdId, storeId, price, clock.GetUtcNow()));
             }
             else if (!body.Bought && item.IsBought)

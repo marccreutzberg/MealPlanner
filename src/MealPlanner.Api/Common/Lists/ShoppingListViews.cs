@@ -64,7 +64,7 @@ public static class ShoppingListViews
     public static ItemDto ToDto(ShoppingListItem item, OfferLookup offers, IReadOnlyDictionary<int, StoreDto> stores,
         IReadOnlyDictionary<int, string> ingredientNames, bool isPinned = false)
     {
-        var candidates = offers.ForItem(item.IngredientId, item.Name, item.Variant);
+        var candidates = offers.ForItem(item.IngredientId, item.Name, item.Variant, item.Quantity);
         var flaggedOffer = item.OfferId is { } offerId ? offers.Find(offerId) : null;
         var best = item.FlaggedStoreId is { } flagged
             ? flaggedOffer ?? candidates.FirstOrDefault(o => o.StoreId == flagged)

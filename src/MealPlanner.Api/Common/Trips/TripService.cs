@@ -130,7 +130,7 @@ public sealed class TripService(AppDbContext db, TimeProvider clock)
         if (context.Stores.All(s => s.Id != storeId)) return Error.Invalid($"Store {storeId} is not one of the household's stores");
 
         var oldStoreId = item.StoreId;
-        var offer = context.Offers.ForItem(listItem.IngredientId, listItem.Name, listItem.Variant)
+        var offer = context.Offers.ForItem(listItem.IngredientId, listItem.Name, listItem.Variant, listItem.Quantity)
             .FirstOrDefault(o => o.StoreId == storeId); // cheapest first
         item.PlaceAt(storeId, offer?.Id, offer?.Heading, offer?.EffectivePrice, StoreSelector.PieceCount(listItem.Quantity),
             offer?.LastValidDay, byHand: true, offer?.AppLabel);

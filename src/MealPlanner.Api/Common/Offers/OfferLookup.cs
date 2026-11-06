@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Common.Matching;
 using MealPlanner.Api.Domain;
@@ -9,7 +10,7 @@ namespace MealPlanner.Api.Common.Offers;
 /// The offers valid on one day in the household's active stores, and which of them fit a shopping item.
 /// Shared by the shopping list, the trip planner and the MCP tools. Load one per request.
 /// </summary>
-public sealed class OfferLookup
+public sealed partial class OfferLookup
 {
     public sealed record CurrentOffer(
         int Id, int StoreId, string StoreName, string Heading, string? Description, decimal Price, decimal? PrePrice,
@@ -23,10 +24,19 @@ public sealed class OfferLookup
         public string? AppLabel => AppPrice is null ? null : AppPrices.Label(StoreName);
 
         internal string SearchText { get; } = IngredientMatcher.Normalize(Heading + " " + Description);
+
+        internal PackageSize? Size { get; } = PackageSize.Parse(Heading) ?? PackageSize.Parse(Description);
     }
 
     // Words in a variant that say nothing about the product itself.
     private static readonly HashSet<string> VariantFillers = ["rigtigt", "rigtig", "ægte", "helst", "gerne", "til", "med", "fra"];
+
+    // Products nobody means by a plain "Faxe Kondi" or "juice". Checked in the part of the heading that names the
+    // item, so "Coca Cola, Fanta, … el. Monster energidrik" still fits Fanta.
+    private static readonly string[] SpecialProductWords = ["booster", "energidrik", "energy"];
+
+    // Said in the description: never for a family shopping list unless the item asks for it.
+    private const string NotForChildren = "ikke egnet til børn";
 
     private readonly List<CurrentOffer> offers;
 
@@ -61,8 +71,14 @@ public sealed class OfferLookup
     /// Offers for an item, cheapest first. Items with an ingredient use its offers; other items match their name
     /// against the heading the same way ingredients do ("Faxe Kondi"). A variant narrows the result (spec 4).
     /// </summary>
+    /// <remarks>
+    /// Only the product counts: "Juice til børn" is matched as "juice", "Bland selv-slik" as "bland selv slik".
+    /// Boosters, energy drinks and offers "ikke egnet til børn" are left out unless the item names them. When the
+    /// amount is a size ("1,5 l"), offers whose package fits come first, then those without a known size.
+    /// </remarks>
     public List<CurrentOffer> ForItem(int? ingredientId, string name, string? variant, string? quantity = null)
     {
+        var itemText = IngredientMatcher.Normalize(name + " " + variant);
         IEnumerable<CurrentOffer> candidates;
         if (ingredientId is { } id)
         {
@@ -70,15 +86,45 @@ public sealed class OfferLookup
         }
         else
         {
-            var wanted = IngredientMatcher.Normalize(name);
-            candidates = wanted.Length == 0 ? [] : offers.Where(o => NameAppearsIn(wanted, IngredientMatcher.Normalize(o.Heading)));
+            var wanted = CoreName(name);
+            candidates = wanted.Length == 0 ? [] : offers.Where(o => NamedPart(wanted, o.Heading) is { } part
+                && !SpecialProductWords.Any(w => part.Contains(w, StringComparison.Ordinal) && !itemText.Contains(w, StringComparison.Ordinal)));
         }
 
         var (required, excluded) = ParseVariant(variant);
+        var wantedSize = PackageSize.Parse(quantity);
         return [.. candidates
             .Where(o => required.Count == 0 || required.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
             .Where(o => !excluded.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
-            .OrderBy(o => o.EffectivePrice)];
+            .Where(o => !o.SearchText.Contains(NotForChildren, StringComparison.Ordinal)
+                || SpecialProductWords.Any(w => itemText.Contains(w, StringComparison.Ordinal)))
+            .OrderBy(o => SizeRank(o.Size, wantedSize))
+            .ThenBy(o => o.EffectivePrice)];
+    }
+
+    /// <summary>0: the package fits the wanted size; 1: unknown; 2: a different size.</summary>
+    private static int SizeRank(PackageSize? offer, PackageSize? wanted) =>
+        wanted is not { } w || offer is not { } o ? 1 : o.Fits(w) ? 0 : 2;
+
+    /// <summary>
+    /// The product without who or when it is for: "juice til børn" -> "juice", "deo til pia" -> "deo",
+    /// "juice hvis vi mangler" -> "juice". Dashes count as spaces ("selv-slik" = "selv slik").
+    /// </summary>
+    internal static string CoreName(string name)
+    {
+        var normalized = IngredientMatcher.Normalize(name).Replace('-', ' ');
+        var suffix = ForWhomSuffix().Match(normalized);
+        var core = suffix.Success && suffix.Index > 0 ? normalized[..suffix.Index] : normalized;
+        return Spaces().Replace(core, " ").Trim();
+    }
+
+    /// <summary>The part of a heading ("a, b eller c") that names the item, or null when none does.</summary>
+    private static string? NamedPart(string coreName, string heading)
+    {
+        var normalized = IngredientMatcher.Normalize(heading).Replace('-', ' ');
+        return NameAppearsIn(coreName, normalized)
+            ? HeadingParts().Split(normalized).FirstOrDefault(p => NameAppearsIn(coreName, p)) ?? normalized
+            : null;
     }
 
     public CurrentOffer? Find(int offerId) => offers.FirstOrDefault(o => o.Id == offerId);
@@ -115,4 +161,15 @@ public sealed class OfferLookup
             .Split([' ', ',', '/', '.'], StringSplitOptions.RemoveEmptyEntries)
             .Where(w => w.Length >= 3 && !VariantFillers.Contains(w))];
     }
+
+    // " til børn", " til pia", " hvis vi mangler", " hvis nødvendigt": who or when, not what.
+    [GeneratedRegex(@"\s+(?:til|hvis)\s+.*$")]
+    private static partial Regex ForWhomSuffix();
+
+    // The separators IngredientMatcher uses between products in one heading.
+    [GeneratedRegex(@"\s*,\s*|\s+eller\s+|\s+el\.\s+|\s*/\s*")]
+    private static partial Regex HeadingParts();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex Spaces();
 }

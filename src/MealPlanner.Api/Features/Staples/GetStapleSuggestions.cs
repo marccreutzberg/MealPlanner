@@ -52,7 +52,7 @@ public static class GetStapleSuggestions
             var matcher = await IngredientMatcher.LoadAsync(db, householdId, ct);
             return [.. suggestions.Select(s =>
             {
-                var best = offers.ForItem(matcher.Match(s.Name).Cast<int?>().FirstOrDefault(), s.Name, null).FirstOrDefault();
+                var best = offers.ForItem(matcher.Match(s.Name).Cast<int?>().FirstOrDefault(), s.Name, null, s.Quantity).FirstOrDefault();
                 return new SuggestionDto(s.Name, s.Quantity, s.Reason.ToString(), s.RhythmDays, s.DaysSinceLast, s.LastBought,
                     best is null ? null : ShoppingListViews.OfferBadge.From(best));
             })];

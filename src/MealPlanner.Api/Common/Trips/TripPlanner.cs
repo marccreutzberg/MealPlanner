@@ -13,7 +13,7 @@ public static class TripPlanner
     /// </summary>
     public static StoreSelector.Item ToPlannerItem(ShoppingListItem item, OfferLookup offers, int? keepAtStoreId) =>
         new(item.Id, item.Name, item.Variant, item.Quantity, item.Tag, keepAtStoreId ?? item.FlaggedStoreId, item.IsBought,
-            [.. offers.ForItem(item.IngredientId, item.Name, item.Variant).Select(o => new StoreSelector.Offer(
+            [.. offers.ForItem(item.IngredientId, item.Name, item.Variant, item.Quantity).Select(o => new StoreSelector.Offer(
                 o.Id, o.StoreId, o.Heading, o.Price, o.PrePrice, o.IsEverydayPrice, o.LastValidDay, o.AppPrice, o.AppLabel))]);
 
     /// <summary>Places a trip item where the planner put it, with the offer known now.</summary>
