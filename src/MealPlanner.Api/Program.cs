@@ -29,7 +29,8 @@ builder.Services.AddShoppingList();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMcpServer()
     .WithHttpTransport()
-    .WithTools<OfferTools>();
+    .WithTools<OfferTools>()
+    .WithTools<ShoppingListTools>();
 
 var app = builder.Build();
 
