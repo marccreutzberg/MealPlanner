@@ -10,6 +10,9 @@ In production the API runs in IIS on the NUC against its existing SQL Server.
 - **Phase 3 (shopping list and trip):** Angular PWA in `web/` with the shared list (categories in REMA's walking
   order, type-ahead, offer badges, store flags, realtime via SignalR), offer search and the shopping trip;
   MCP tools `get_shopping_list`, `add_to_shopping_list`, `update_shopping_list_item` and `build_shopping_list`.
+- **Phase 4 (recipes and meal plan):** Claude saves recipes (`add_recipe`), gets dishes ranked by the week's offers
+  (`suggest_meals`), plans the week (`save_meal_plan`, `get_meal_plan`) and puts it on the list with amounts summed
+  across dishes (`build_shopping_list` with `mealPlanWeek`). The app shows the meal plan and can put it on the list.
 
 ## Structure
 
@@ -18,7 +21,7 @@ src/
   MealPlanner.AppHost/          Aspire orchestration (local development only)
   MealPlanner.ServiceDefaults/  OpenTelemetry, health checks
   MealPlanner.Api/
-    Domain/                     Entities with behaviour (Offer validity and conditions, ApiKey.Revoke)
+    Domain/                     Entities with behaviour (Offer validity, MealPlan days, Quantity: amounts that add up)
     Common/Data/                AppDbContext, SeedData, migrations, startup migration
     Common/Auth/                Identity + cookie, API key scheme, household claim, user seeding
     Common/Jobs/                Hangfire setup and dashboard protection
@@ -28,7 +31,8 @@ src/
     Common/Categories/          CategoryClassifier (starter dictionary of ~500 words in SeedData)
     Common/Offers/              OfferLookup: today's offers for a shopping item
     Common/Stores/              StoreSelector (trip planning) and TripText (spec 12.6 text, texts in resx)
-    Common/Lists/               Shopping list views shared by slices and MCP tools
+    Common/Lists/               Shopping list views and ShoppingListWriter (adding items), shared by slices
+    Common/Meals/               MealScorer (spec 5.3), recipe and meal plan views
     Common/Realtime/            SignalR hub that tells the household's phones the list changed
     Common/Results/             Result type shared by endpoints and MCP tools
     Common/Web/                 Serves the Angular app from wwwroot
@@ -36,9 +40,12 @@ src/
     Features/ApiKeys/           Create, list, revoke API keys
     Features/Offers/            FetchOffersJob, SearchOffers, MapOffer
     Features/ShoppingList/      GetList, AddItems, UpdateItem, SetBought, RemoveItems, SuggestItems, BuildTrip
+    Features/Recipes/           AddRecipe, GetRecipes, SuggestMeals
+    Features/MealPlans/         SaveMealPlan, GetMealPlan, AddMealPlanToList
     Mcp/                        MCP tools calling the feature handlers
 tests/
-  MealPlanner.Tests/            xUnit: offers, Tjek parsing, matcher (spec 12.4), classifier and trip (spec 12.6)
+  MealPlanner.Tests/            xUnit: offers, Tjek parsing, matcher (spec 12.4), classifier, trip (spec 12.6),
+                                quantities (spec 5.5), meal scoring and meal plans
 web/                            Angular 22 PWA (builds into src/MealPlanner.Api/wwwroot)
   src/app/i18n/da.json          Every Danish text in the app
 ```
@@ -116,6 +123,12 @@ cd web && npm ci
 | `GET /api/shopping-list/suggestions?q=` | cookie or key | Type-ahead |
 | `POST /api/shopping-list/trip` | cookie or key | Plans the trip and returns it per store and as text |
 | `/hubs/shopping-list` | cookie | SignalR: `ListChanged` |
+| `POST /api/recipes` | cookie or key | Save a recipe (same name replaces); lines with `text`, `quantity`, `isMain` |
+| `GET /api/recipes`, `GET /api/recipes/{id}` | cookie or key | |
+| `GET /api/recipes/suggestions` | cookie or key | `count`, `childFriendly`, `maxMinutes`, `from` |
+| `GET /api/meal-plans/{day}` | cookie or key | The week containing the day |
+| `PUT /api/meal-plans/{day}` | cookie or key | `{ "days": [{ "date": "2026-11-09", "recipeId": 1 }] }` (or `"recipe": "Lasagne"`) |
+| `POST /api/meal-plans/{day}/to-shopping-list` | cookie or key | `{ "force": false }`; days already on the list are skipped |
 | `POST /mcp` | key | MCP (Streamable HTTP) |
 | `GET /account/login` | – | Login page (used to reach the Hangfire dashboard) |
 | `GET /hangfire` | cookie | Jobs dashboard, blocked through the tunnel |
@@ -173,7 +186,12 @@ Cloudflare Tunnel (`cloudflared` as a Windows service) is the only way in from t
 3. **Site** `MealPlanner`: physical path e.g. `C:\inetpub\MealPlanner`, app pool `MealPlanner`,
    binding `http` on port 8080, **Preload Enabled = True** (Advanced Settings).
 
-4. **SQL Server login** for the app pool identity, so the connection string needs no password:
+4. **SQL Server access with Windows login** (`Integrated Security=true`, no password in the connection string).
+   The app connects as the app pool's identity. Choose one:
+
+   - **Simplest:** set the app pool's *Identity* (Advanced Settings) to your own Windows account. It then has the
+     same SQL Server access you have, and nothing needs to be created in SQL Server.
+   - **Separate identity:** keep `ApplicationPoolIdentity` and give `IIS APPPOOL\MealPlanner` its own login:
 
    ```sql
    CREATE LOGIN [IIS APPPOOL\MealPlanner] FROM WINDOWS;
@@ -225,7 +243,7 @@ Migrations run automatically when the app starts.
 
 ## Not built yet
 
-Recipes and meal plans (phase 4), purchase rhythm and pinned items (phase 5).
+Purchase rhythm and pinned items (phase 5). Editing recipes in the app (v1: Claude writes them, spec 2).
 
 Known gaps:
 - Prices are compared per package as printed. Kg prices ("pr. ½ kg", "Kg-pris maks.") and sizes are not normalised,
