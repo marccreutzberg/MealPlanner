@@ -25,10 +25,14 @@ public static partial class StoreSelector
     public sealed record Store(int Id, string Name, bool IsHome, string? StopGroup);
 
     public sealed record Offer(int Id, int StoreId, string Heading, decimal Price, decimal? PrePrice, bool IsEverydayPrice,
-        DateOnly LastValidDay);
+        DateOnly LastValidDay, decimal? AppPrice = null, string? AppLabel = null)
+    {
+        /// <summary>What the household pays: the app or member price when there is one.</summary>
+        public decimal EffectivePrice => AppPrice ?? Price;
+    }
 
     public sealed record Item(int Id, string Name, string? Variant, string? Quantity, string? Tag, int? FlaggedStoreId,
-        bool IsBought, List<Offer> Offers);
+        bool IsBought, List<Offer> Offers, string? Category = null, int CategorySort = int.MaxValue);
 
     public sealed record PlannedItem(Item Item, Offer? Offer, int Count, decimal? LinePrice);
 
@@ -85,7 +89,7 @@ public static partial class StoreSelector
         {
             var (store, offer) = Assign(item, visitable, home);
             var count = PieceCount(item.Quantity);
-            byStore[store.Id].Add(new PlannedItem(item, offer, count, offer?.Price * count));
+            byStore[store.Id].Add(new PlannedItem(item, offer, count, offer?.EffectivePrice * count));
             if (offer is not null) saving += Saving(offer) * count;
         }
 
@@ -116,7 +120,7 @@ public static partial class StoreSelector
         var storeIds = stopKeys.SelectMany(k => stops[k]).Select(s => s.Id).ToHashSet();
         return items
             .Where(i => i.FlaggedStoreId is null)
-            .Select(i => (Item: i, Offer: i.Offers.Where(o => storeIds.Contains(o.StoreId)).MinBy(o => o.Price)))
+            .Select(i => (Item: i, Offer: i.Offers.Where(o => storeIds.Contains(o.StoreId)).MinBy(o => o.EffectivePrice)))
             .Where(x => x.Offer is not null)
             .Sum(x => Saving(x.Offer!) * PieceCount(x.Item.Quantity));
     }
@@ -129,21 +133,29 @@ public static partial class StoreSelector
             var flaggedStore = visitable.FirstOrDefault(s => s.Id == flagged);
             return flaggedStore is null
                 ? (home, null)
-                : (flaggedStore, item.Offers.Where(o => o.StoreId == flagged).MinBy(o => o.Price));
+                : (flaggedStore, item.Offers.Where(o => o.StoreId == flagged).MinBy(o => o.EffectivePrice));
         }
 
         var ids = visitable.Select(s => s.Id).ToHashSet();
         var cheapest = item.Offers
             .Where(o => ids.Contains(o.StoreId))
-            .OrderBy(o => o.Price)
+            .OrderBy(o => o.EffectivePrice)
             .ThenBy(o => o.StoreId == home.Id ? 0 : 1)
             .FirstOrDefault();
         return cheapest is null ? (home, null) : (visitable.First(s => s.Id == cheapest.StoreId), cheapest);
     }
 
-    public static decimal Saving(Offer offer) =>
-        offer.PrePrice is { } pre && pre > offer.Price ? pre - offer.Price
-        : offer.Price * (offer.IsEverydayPrice ? AssumedEverydaySaving : AssumedCampaignSaving);
+    /// <summary>
+    /// Pre-price minus what is paid when Tjek has a pre-price; else the price without the app minus the app price;
+    /// else an assumed share of the price.
+    /// </summary>
+    public static decimal Saving(Offer offer)
+    {
+        var paid = offer.EffectivePrice;
+        if (offer.PrePrice is { } pre && pre > paid) return pre - paid;
+        if (offer.AppPrice is { } app && app < offer.Price) return offer.Price - app;
+        return paid * (offer.IsEverydayPrice ? AssumedEverydaySaving : AssumedCampaignSaving);
+    }
 
     /// <summary>"5 stk." -> 5, "2 bakker" -> 2, "3" -> 3. Weights and volumes ("1 kg", "500 g") count as one package.</summary>
     public static int PieceCount(string? quantity)

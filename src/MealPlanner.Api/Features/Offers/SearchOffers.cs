@@ -26,7 +26,7 @@ public static class SearchOffers
     public sealed record OfferDto(
         int Id, string Store, string Heading, string? Description, decimal Price, decimal? PrePrice,
         DateOnly ValidFrom, DateOnly ValidTo, bool IsEverydayPrice, bool RequiresAppOrMembership, int? MaxPerCustomer,
-        List<string> Ingredients);
+        List<string> Ingredients, decimal? AppPrice);
 
     public sealed record Response(int Total, List<OfferDto> Offers);
 
@@ -70,7 +70,7 @@ public static class SearchOffers
                 {
                     Dto = new OfferDto(o.Id, o.Store.Name, o.Heading, o.Description, o.Price, o.PrePrice,
                         default, default, o.IsEverydayPrice, o.RequiresAppOrMembership, o.MaxPerCustomer,
-                        o.Ingredients.Select(i => i.Ingredient.Name).ToList()),
+                        o.Ingredients.Select(i => i.Ingredient.Name).ToList(), o.AppPrice),
                     o.ValidFrom,
                     o.ValidTo,
                 })

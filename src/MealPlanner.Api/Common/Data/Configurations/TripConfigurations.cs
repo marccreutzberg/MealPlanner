@@ -29,6 +29,7 @@ public class ShoppingTripItemConfiguration : IEntityTypeConfiguration<ShoppingTr
         b.Property(x => x.Variant).HasMaxLength(200);
         b.Property(x => x.Tag).HasMaxLength(100);
         b.Property(x => x.OfferHeading).HasMaxLength(300);
+        b.Property(x => x.PriceLabel).HasMaxLength(50);
         // No database cascade: TripFreezer copies the item and clears the link before list items are deleted.
         // A SET NULL rule here would give SQL Server more than one cascade path.
         b.HasOne(x => x.ShoppingListItem).WithMany().HasForeignKey(x => x.ShoppingListItemId)

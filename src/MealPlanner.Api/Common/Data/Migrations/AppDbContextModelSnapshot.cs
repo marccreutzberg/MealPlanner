@@ -371,6 +371,10 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("AppPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
@@ -749,6 +753,10 @@ namespace MealPlanner.Api.Common.Data.Migrations
 
                     b.Property<int?>("OfferId")
                         .HasColumnType("int");
+
+                    b.Property<string>("PriceLabel")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Quantity")
                         .HasMaxLength(100)

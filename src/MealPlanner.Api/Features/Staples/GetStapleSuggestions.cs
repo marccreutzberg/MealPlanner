@@ -54,8 +54,7 @@ public static class GetStapleSuggestions
             {
                 var best = offers.ForItem(matcher.Match(s.Name).Cast<int?>().FirstOrDefault(), s.Name, null).FirstOrDefault();
                 return new SuggestionDto(s.Name, s.Quantity, s.Reason.ToString(), s.RhythmDays, s.DaysSinceLast, s.LastBought,
-                    best is null ? null : new ShoppingListViews.OfferBadge(best.Id, best.StoreName, best.Heading, best.Price,
-                        best.LastValidDay, best.RequiresAppOrMembership));
+                    best is null ? null : ShoppingListViews.OfferBadge.From(best));
             })];
         }
     }

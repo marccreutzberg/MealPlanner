@@ -62,6 +62,9 @@ public class ShoppingTripItem
     public decimal? LinePrice { get; set; }
     public DateOnly? LastValidDay { get; set; }
 
+    /// <summary>"Lidl Plus", "Netto+" or "medlemspris" when <see cref="UnitPrice"/> is an app or member price.</summary>
+    public string? PriceLabel { get; set; }
+
     /// <summary>Moved to its store on the trip by hand ("REMA was sold out"); kept there when stores change.</summary>
     public bool MovedByHand { get; set; }
 
@@ -79,12 +82,13 @@ public class ShoppingTripItem
     }
 
     public void PlaceAt(int storeId, int? offerId, string? offerHeading, decimal? unitPrice, int count,
-        DateOnly? lastValidDay, bool byHand)
+        DateOnly? lastValidDay, bool byHand, string? priceLabel = null)
     {
         StoreId = storeId;
         OfferId = offerId;
         OfferHeading = offerHeading;
         UnitPrice = unitPrice;
+        PriceLabel = priceLabel;
         Count = count;
         LinePrice = unitPrice * count;
         LastValidDay = lastValidDay;

@@ -40,9 +40,11 @@ public static class TripText
         var check = item.IsBought ? "- [x] " : "- [ ] ";
         if (planned.Offer is null) return check + name;
 
+        var paid = planned.Offer.EffectivePrice;
         var price = planned.Count > 1
-            ? string.Format(Danish, texts["PricePerPiece"], Money(planned.Offer.Price), Money(planned.LinePrice!.Value))
-            : string.Format(Danish, texts["Price"], Money(planned.Offer.Price));
+            ? string.Format(Danish, texts["PricePerPiece"], Money(paid), Money(planned.LinePrice!.Value))
+            : string.Format(Danish, texts["Price"], Money(paid));
+        if (planned.Offer.AppLabel is { } app) price += $" ({app})";
         return $"{check}{name} · {price}";
     }
 

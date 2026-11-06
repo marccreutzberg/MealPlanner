@@ -17,6 +17,10 @@ public partial class Offer
     public string? Description { get; set; }
     public decimal Price { get; set; }
     public decimal? PrePrice { get; set; }
+
+    /// <summary>The price with the chain's app or membership (Lidl Plus, Netto+, Coop); null when there is none.</summary>
+    public decimal? AppPrice { get; set; }
+
     public DateTimeOffset ValidFrom { get; set; }
     public DateTimeOffset ValidTo { get; set; }
 
@@ -48,16 +52,29 @@ public partial class Offer
     {
         Heading = heading.Trim();
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
-        Price = price;
         PrePrice = prePrice;
         ValidFrom = validFrom;
         ValidTo = validTo;
 
         var text = Heading + "\n" + Description;
         IsEverydayPrice = EverydayPriceText().IsMatch(text) || validTo - validFrom >= EverydayPriceMinimumRun;
-        RequiresAppOrMembership = AppOrMembershipText().IsMatch(text);
+
+        // REMA: "Ved køb af flere end 6 stk. pr. variant pr. dag er prisen 20.53 pr. stk." Tjek delivers that price
+        // as pre_price, but it is the price above the limit, not a former price.
+        int? limit = null;
+        var bulk = QuantityLimitText().Match(text);
+        if (bulk.Success)
+        {
+            limit = int.Parse(bulk.Groups["count"].Value, CultureInfo.InvariantCulture);
+            if (PrePrice == OfferPricing.ParseAmount(bulk.Groups["price"].Value)) PrePrice = null;
+        }
         var max = MaxPerCustomerText().Match(text);
-        MaxPerCustomer = max.Success ? int.Parse(max.Groups[1].Value, CultureInfo.InvariantCulture) : null;
+        MaxPerCustomer = max.Success ? int.Parse(max.Groups[1].Value, CultureInfo.InvariantCulture) : limit;
+
+        var pricing = OfferPricing.Parse(text, price);
+        Price = pricing.Price;
+        AppPrice = pricing.AppPrice;
+        RequiresAppOrMembership = pricing.RequiresApp;
     }
 
     /// <summary>Replaces automatic matches. Ignored once a person has mapped the offer.</summary>
@@ -89,11 +106,12 @@ public partial class Offer
     [GeneratedRegex(@"fast\s+lav\s+pris", RegexOptions.IgnoreCase)]
     private static partial Regex EverydayPriceText();
 
-    // "Gælder kun med Netto+ appen", "Medlemspris", "kun for medlemmer".
-    [GeneratedRegex(@"netto\+|med\s+\S+\s+app(en)?\b|medlemspris|kun\s+for\s+medlemmer|coop\s+app", RegexOptions.IgnoreCase)]
-    private static partial Regex AppOrMembershipText();
-
-    // "Maks. 3 poser pr. kunde", "Max 2 stk. pr. kunde".
-    [GeneratedRegex(@"ma(?:ks|x)\.?\s*(\d+)\s*[\p{L}.]*\s*pr\.?\s*kunde", RegexOptions.IgnoreCase)]
+    // "Maks. 3 poser pr. kunde", "Max 2 stk. pr. kunde", Netto's "Max. 6 stk. pr. variant pr. kunde pr. dag".
+    [GeneratedRegex(@"ma(?:ks|x)\.?\s*(\d+)\s*[\p{L}.]*(?:\s*pr\.?\s*variant)?\s*pr\.?\s*kunde", RegexOptions.IgnoreCase)]
     private static partial Regex MaxPerCustomerText();
+
+    // REMA: "Ved køb af flere end 72 stk. pr. variant pr. dag er prisen op til 7.50 pr. stk."
+    [GeneratedRegex(@"flere\s+end\s+(?<count>\d+)\s*stk\.?(?:\s*pr\.?\s*variant)?\s*pr\.?\s*dag\s+er\s+prisen\s+(?:op\s+til\s+)?(?<price>\d+(?:[.,]\d{1,2})?)",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex QuantityLimitText();
 }

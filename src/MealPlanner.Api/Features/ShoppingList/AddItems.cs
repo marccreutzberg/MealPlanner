@@ -15,7 +15,10 @@ public static class AddItems
 {
     public sealed record Command(List<ShoppingListWriter.NewItem> Items);
 
-    public sealed record Response(List<ShoppingListViews.ItemDto> Items);
+    public sealed record Response(List<ShoppingListViews.ItemDto> Items, List<string>? Warnings = null);
+
+    /// <summary>Warnings for Claude about items that look like several products in one.</summary>
+    public static List<string> Warnings(IEnumerable<Domain.ShoppingListItem> items) => [];
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/api/shopping-list/items", async (Command command, ClaimsPrincipal user, Handler handler,

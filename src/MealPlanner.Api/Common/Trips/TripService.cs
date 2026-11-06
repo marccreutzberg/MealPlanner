@@ -132,8 +132,8 @@ public sealed class TripService(AppDbContext db, TimeProvider clock)
         var oldStoreId = item.StoreId;
         var offer = context.Offers.ForItem(listItem.IngredientId, listItem.Name, listItem.Variant)
             .FirstOrDefault(o => o.StoreId == storeId); // cheapest first
-        item.PlaceAt(storeId, offer?.Id, offer?.Heading, offer?.Price, StoreSelector.PieceCount(listItem.Quantity),
-            offer?.LastValidDay, byHand: true);
+        item.PlaceAt(storeId, offer?.Id, offer?.Heading, offer?.EffectivePrice, StoreSelector.PieceCount(listItem.Quantity),
+            offer?.LastValidDay, byHand: true, offer?.AppLabel);
         listItem.PlannedStoreId = storeId;
 
         if (trip.Stores.All(s => s.StoreId != storeId)) trip.Stores.Add(new ShoppingTripStore { StoreId = storeId });

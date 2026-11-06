@@ -13,8 +13,15 @@ public sealed class OfferLookup
 {
     public sealed record CurrentOffer(
         int Id, int StoreId, string StoreName, string Heading, string? Description, decimal Price, decimal? PrePrice,
-        bool IsEverydayPrice, bool RequiresAppOrMembership, DateOnly LastValidDay, List<int> IngredientIds)
+        bool IsEverydayPrice, bool RequiresAppOrMembership, DateOnly LastValidDay, List<int> IngredientIds,
+        decimal? AppPrice = null)
     {
+        /// <summary>What the household pays: the app price when there is one (they use the apps).</summary>
+        public decimal EffectivePrice => AppPrice ?? Price;
+
+        /// <summary>"Lidl Plus", "Netto+" or "medlemspris" when <see cref="EffectivePrice"/> is an app price.</summary>
+        public string? AppLabel => AppPrice is null ? null : AppPrices.Label(StoreName);
+
         internal string SearchText { get; } = IngredientMatcher.Normalize(Heading + " " + Description);
     }
 
@@ -40,21 +47,21 @@ public sealed class OfferLookup
             .Select(o => new
             {
                 o.Id, o.StoreId, StoreName = o.Store.Name, o.Heading, o.Description, o.Price, o.PrePrice,
-                o.IsEverydayPrice, o.RequiresAppOrMembership, o.ValidTo,
+                o.IsEverydayPrice, o.RequiresAppOrMembership, o.ValidTo, o.AppPrice,
                 IngredientIds = o.Ingredients.Select(i => i.IngredientId).ToList(),
             })
             .ToListAsync(ct);
 
         return new OfferLookup([.. rows.Select(r => new CurrentOffer(r.Id, r.StoreId, r.StoreName, r.Heading, r.Description,
             r.Price, r.PrePrice, r.IsEverydayPrice, r.RequiresAppOrMembership, DanishTime.ToDate(r.ValidTo.AddSeconds(-1)),
-            r.IngredientIds))]);
+            r.IngredientIds, r.AppPrice))]);
     }
 
     /// <summary>
     /// Offers for an item, cheapest first. Items with an ingredient use its offers; other items match their name
     /// against the heading the same way ingredients do ("Faxe Kondi"). A variant narrows the result (spec 4).
     /// </summary>
-    public List<CurrentOffer> ForItem(int? ingredientId, string name, string? variant)
+    public List<CurrentOffer> ForItem(int? ingredientId, string name, string? variant, string? quantity = null)
     {
         IEnumerable<CurrentOffer> candidates;
         if (ingredientId is { } id)
@@ -71,7 +78,7 @@ public sealed class OfferLookup
         return [.. candidates
             .Where(o => required.Count == 0 || required.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
             .Where(o => !excluded.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
-            .OrderBy(o => o.Price)];
+            .OrderBy(o => o.EffectivePrice)];
     }
 
     public CurrentOffer? Find(int offerId) => offers.FirstOrDefault(o => o.Id == offerId);

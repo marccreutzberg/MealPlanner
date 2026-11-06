@@ -88,9 +88,10 @@ public sealed class FetchOffersJob(AppDbContext db, TjekClient tjek, TimeProvide
     {
         var existing = await db.Offers.ToDictionaryAsync(o => o.TjekId, ct);
 
-        // The same product can appear twice (catalogue and "spot") with different ids (spec 12.1).
+        // The same product can appear twice (catalogue and "spot") with different ids (spec 12.1). Tjek's price may
+        // have become the app price (Lidl, Coop), so both prices count as the one Tjek delivered.
         var seen = existing.Values
-            .Select(o => DuplicateKey(o.StoreId, o.Heading, o.Price, o.ValidFrom))
+            .SelectMany(o => new[] { o.Price, o.AppPrice ?? o.Price }.Select(p => DuplicateKey(o.StoreId, o.Heading, p, o.ValidFrom)))
             .ToHashSet();
 
         int added = 0, updated = 0, duplicates = 0;

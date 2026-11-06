@@ -14,8 +14,16 @@ public static class ShoppingListViews
     // Data, not UI text: the name of the list created for a household.
     public const string DefaultListName = "Indkøbsliste";
 
+    /// <param name="Price">What the household pays: the app or member price when there is one.</param>
+    /// <param name="PriceWithoutApp">The price without the app, when <paramref name="AppLabel"/> is set and it differs.</param>
+    /// <param name="AppLabel">"Lidl Plus", "Netto+" or "medlemspris" when the price needs the app or membership.</param>
     public sealed record OfferBadge(int OfferId, string Store, string Heading, decimal Price, DateOnly LastValidDay,
-        bool RequiresAppOrMembership);
+        bool RequiresAppOrMembership, decimal? PriceWithoutApp = null, string? AppLabel = null)
+    {
+        public static OfferBadge From(OfferLookup.CurrentOffer offer) =>
+            new(offer.Id, offer.StoreName, offer.Heading, offer.EffectivePrice, offer.LastValidDay, offer.RequiresAppOrMembership,
+                offer.AppPrice is { } app && app < offer.Price ? offer.Price : null, offer.AppLabel);
+    }
 
     public sealed record StoreFlag(int StoreId, string Store, StoreFlagSource Source, DateOnly? LastValidDay);
 
@@ -68,8 +76,7 @@ public static class ShoppingListViews
 
         return new ItemDto(item.Id, item.Name, item.Quantity, item.Variant, item.Tag, item.CategoryId,
             item.IngredientId is { } ing ? ingredientNames.GetValueOrDefault(ing) : null, item.IsBought, flag,
-            best is null ? null : new OfferBadge(best.Id, best.StoreName, best.Heading, best.Price, best.LastValidDay,
-                best.RequiresAppOrMembership),
+            best is null ? null : OfferBadge.From(best),
             candidates.Count, isPinned);
     }
 

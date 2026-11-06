@@ -15,7 +15,8 @@ public static class TripViews
     /// <param name="ItemId">The list item, for ticking; null when it was removed from the list or the trip is finished.</param>
     public sealed record TripItemDto(int Id, int? ItemId, string Name, string? Variant, string? Quantity, string? Tag,
         bool IsBought, bool MovedByHand, string? OfferHeading, decimal? UnitPrice, int Count, decimal? LinePrice,
-        DateOnly? LastValidDay);
+        DateOnly? LastValidDay, string? Category = null, string? CategoryColor = null, int CategorySort = int.MaxValue,
+        string? PriceLabel = null);
 
     public sealed record VisitDto(int StoreId, string Store, string Color, bool IsHomeStore, decimal Subtotal,
         List<TripItemDto> Items);
@@ -35,18 +36,21 @@ public static class TripViews
     /// One trip item. On an active trip it shows the list item as it is now (one tick, one amount); a removed item
     /// is shown only if it was bought. A finished trip shows the frozen copy.
     /// </summary>
-    public static TripItemDto? ToItem(ShoppingTripItem item, bool active)
+    public static TripItemDto? ToItem(ShoppingTripItem item, bool active,
+        IReadOnlyDictionary<int, Category>? categories = null)
     {
         var live = active ? item.ShoppingListItem : null;
         if (active && live is null && !item.WasBought) return null;
         if (live is null)
             return new TripItemDto(item.Id, null, item.Name, item.Variant, item.Quantity, item.Tag, item.WasBought,
-                item.MovedByHand, item.OfferHeading, item.UnitPrice, item.Count, item.LinePrice, item.LastValidDay);
+                item.MovedByHand, item.OfferHeading, item.UnitPrice, item.Count, item.LinePrice, item.LastValidDay,
+                PriceLabel: item.PriceLabel);
 
         // The amount may have changed on the list since the trip was made ("2 pk." + "2 pk." = "4 pk.").
         var count = StoreSelector.PieceCount(live.Quantity);
         return new TripItemDto(item.Id, live.Id, live.Name, live.Variant, live.Quantity, live.Tag, live.IsBought,
-            item.MovedByHand, item.OfferHeading, item.UnitPrice, count, item.UnitPrice * count, item.LastValidDay);
+            item.MovedByHand, item.OfferHeading, item.UnitPrice, count, item.UnitPrice * count, item.LastValidDay,
+            PriceLabel: item.PriceLabel);
     }
 
     /// <summary>Open items on the household's list that are not on the trip.</summary>
@@ -102,6 +106,10 @@ public static class TripViews
             TripText.Format(ToPlan(visits), texts));
     }
 
+    /// <summary>Driving order of the stores on a trip.</summary>
+    public static List<VisitDto> OrderVisits(IEnumerable<VisitDto> visits) =>
+        [.. visits.OrderBy(v => v.IsHomeStore).ThenByDescending(v => v.Subtotal)];
+
     public static TripSummaryDto ToSummary(ShoppingTrip trip, IReadOnlyDictionary<int, string> storeNames) =>
         new(trip.Id, trip.CreatedAt, trip.FinishedAt,
             [.. trip.Items.Select(i => i.StoreId).Distinct().Select(id => storeNames.GetValueOrDefault(id, ""))],
@@ -114,7 +122,8 @@ public static class TripViews
                 [.. v.Items.Select(i => new StoreSelector.PlannedItem(
                     new StoreSelector.Item(i.Id, i.Name, i.Variant, i.Quantity, i.Tag, null, i.IsBought, []),
                     i.UnitPrice is { } price
-                        ? new StoreSelector.Offer(0, v.StoreId, i.OfferHeading ?? "", price, null, false, i.LastValidDay ?? default)
+                        ? new StoreSelector.Offer(0, v.StoreId, i.OfferHeading ?? "", price, null, false, i.LastValidDay ?? default,
+                            AppLabel: i.PriceLabel)
                         : null,
                     i.Count, i.LinePrice))]))],
             0);
