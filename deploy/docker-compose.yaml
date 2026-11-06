@@ -1,0 +1,59 @@
+services:
+  sql:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQL_PASSWORD}"
+      MSSQL_PID: "Express"
+    expose:
+      - "1433"
+    volumes:
+      - type: "volume"
+        target: "/var/opt/mssql"
+        source: "mealplanner-sql"
+        read_only: false
+    networks:
+      - "aspire"
+    restart: "unless-stopped"
+  api:
+    image: "mealplanner-api:latest"
+    build:
+      context: ".."
+      dockerfile: "src/MealPlanner.Api/Dockerfile"
+    environment:
+      ConnectionStrings__mealplanner: "Server=sql,1433;User ID=sa;Password=${SQL_PASSWORD};TrustServerCertificate=true;Initial Catalog=MealPlanner"
+      TZ: "Europe/Copenhagen"
+      Users__0__DisplayName: "Marc"
+      Users__0__Email: "${MARC_EMAIL}"
+      Users__0__Password: "${MARC_PASSWORD}"
+      Users__1__DisplayName: "Pia"
+      Users__1__Email: "${PIA_EMAIL}"
+      Users__1__Password: "${PIA_PASSWORD}"
+    ports:
+      - "8080:8080"
+    depends_on:
+      sql:
+        condition: "service_started"
+    networks:
+      - "aspire"
+    restart: "unless-stopped"
+  cloudflared:
+    image: "cloudflare/cloudflared:2026.10.7"
+    command:
+      - "tunnel"
+      - "--no-autoupdate"
+      - "run"
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN}"
+    depends_on:
+      api:
+        condition: "service_started"
+    networks:
+      - "aspire"
+    restart: "unless-stopped"
+networks:
+  aspire:
+    driver: "bridge"
+volumes:
+  mealplanner-sql:
+    driver: "local"
