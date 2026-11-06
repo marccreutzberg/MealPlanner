@@ -257,7 +257,9 @@ recipe import from URLs.
 Known gaps:
 - Prices are compared per package as printed. Kg prices ("pr. ½ kg", "Kg-pris maks.") and sizes are not normalised,
   so a small Fanta can win over a 1,5 l bottle.
-- Unknown words are not yet classified by Claude Haiku (spec 4); they land in "Andet" until moved, which teaches a rule.
+- Decided not to call Claude Haiku for unknown words (spec 4, point 4). They land in "Andet"; moving one in the app,
+  or letting Claude Desktop go through "Andet" with `get_shopping_list` and `update_shopping_list_item(categoryId)`,
+  saves a learned rule so the word lands right next time.
 - Chosen type-ahead corrections are not saved as aliases yet ("hyteost" -> hytteost).
 - The MCP secret-path fallback is only needed if *Request headers* is missing on the private Claude accounts.
 
