@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.SqlServer;
+using MealPlanner.Api.Common.Auth;
 using Microsoft.Data.SqlClient;
 
 namespace MealPlanner.Api.Common.Jobs;
@@ -62,7 +63,7 @@ public static class HangfireSetup
             Authorization = [],
             DashboardTitle = "MealPlanner jobs",
             AppPath = null,
-        }).RequireAuthorization();
+        }).RequireAuthorization(Policies.Cookie);
 
         return app;
     }

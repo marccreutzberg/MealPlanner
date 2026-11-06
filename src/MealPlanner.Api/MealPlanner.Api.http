@@ -1,0 +1,48 @@
+# MealPlanner API. Run with the Visual Studio / VS Code HTTP client.
+# Set your own values in an http-client.env.json or edit the variables below locally (do not commit passwords).
+@baseUrl = http://localhost:5169
+@email = marc@example.com
+@password = change-me
+@apiKey = mp_paste-a-key-here
+
+### Log in (sets the auth cookie for the following requests)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}" }
+
+### Who am I
+GET {{baseUrl}}/api/auth/me
+
+### Create an API key for the Claude connector. The key is shown only in this response.
+POST {{baseUrl}}/api/api-keys
+Content-Type: application/json
+
+{ "name": "Claude (privat konto)" }
+
+### List my API keys
+GET {{baseUrl}}/api/api-keys
+
+### Revoke a key
+DELETE {{baseUrl}}/api/api-keys/1
+
+### Search offers (cookie or API key). period: today | week | upcoming
+GET {{baseUrl}}/api/offers?text=kyllingebryst&period=week
+X-Api-Key: {{apiKey}}
+
+### Offers without an ingredient
+GET {{baseUrl}}/api/offers?unmapped=true&limit=20
+
+### Map an offer to an ingredient (creates the ingredient when a category is given)
+POST {{baseUrl}}/api/offers/1/mapping
+Content-Type: application/json
+
+{ "ingredients": ["Smør"], "category": "Mejeri" }
+
+### MCP: list tools (API key only)
+POST {{baseUrl}}/mcp
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }

@@ -4,6 +4,7 @@ using MealPlanner.Api.Common.Tjek;
 using MealPlanner.Api.Features.Offers;
 using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Common.Jobs;
+using MealPlanner.Api.Features.ApiKeys;
 using MealPlanner.Api.Features.Auth;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,7 @@ builder.AddServiceDefaults();
 builder.AddSqlServerDbContext<AppDbContext>("mealplanner", configureDbContextOptions: options => options
     .UseSeeding((db, _) => SeedData.Seed(db))
     .UseAsyncSeeding((db, _, ct) => SeedData.SeedAsync(db, ct)));
-builder.AddCookieAuth();
+builder.AddAuth();
 builder.AddHangfireJobs();
 
 builder.Services.AddSingleton(TimeProvider.System);
@@ -43,5 +44,8 @@ GetCurrentUser.Map(app);
 LoginPage.Map(app);
 SearchOffers.Map(app);
 MapOffer.Map(app);
+CreateApiKey.Map(app);
+ListApiKeys.Map(app);
+RevokeApiKey.Map(app);
 
 app.Run();

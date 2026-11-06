@@ -1,5 +1,7 @@
 using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Domain;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -10,17 +12,25 @@ public static class AuthSetup
 {
     public const string LoginPath = "/account/login";
 
-    public static WebApplicationBuilder AddCookieAuth(this WebApplicationBuilder builder)
+    /// <summary>Cookie login for people, API keys for the Claude connector.</summary>
+    public static WebApplicationBuilder AddAuth(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
 
-        // Keys live in the database so cookies survive container rebuilds.
+        // Keys live in the database so cookies survive app pool recycles and redeploys.
         services.AddDataProtection()
             .SetApplicationName("MealPlanner")
             .PersistKeysToDbContext<AppDbContext>();
 
-        services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
-        services.AddAuthorization();
+        services.AddAuthentication(IdentityConstants.ApplicationScheme)
+            .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, null);
+        services.AddAuthentication().AddIdentityCookies();
+
+        services.AddAuthorizationBuilder()
+            .SetDefaultPolicy(new AuthorizationPolicyBuilder(IdentityConstants.ApplicationScheme, ApiKeyAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser().Build())
+            .AddPolicy(Policies.Cookie, p => p.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme).RequireAuthenticatedUser())
+            .AddPolicy(Policies.ApiKey, p => p.AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName).RequireAuthenticatedUser());
 
         // No open registration: users come from configuration (see UserSeeder).
         services.AddIdentityCore<User>(o =>
