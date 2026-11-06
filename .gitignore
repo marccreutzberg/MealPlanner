@@ -486,3 +486,6 @@ $RECYCLE.BIN/
 
 # MealPlanner: Angular build output (web/ builds into the API)
 src/MealPlanner.Api/wwwroot/
+
+# MealPlanner: deployment packages built by deploy/build-package.ps1
+artifacts/
