@@ -161,6 +161,20 @@ public class ShoppingTestNov6Tests
     }
 
     [Fact]
+    public void B4_a_known_wrong_size_is_dropped_when_a_package_fits()
+    {
+        // The planner chooses by price, so a cheaper 33 cl can must not be left as an alternative to the bottle.
+        var lookup = new OfferLookup(
+        [
+            Current(1, "Kvickly", "Faxe Kondi eller Pepsi Max", "150 cl", 12m),
+            Current(2, "Kvickly", "Faxe Kondi", "33 cl. dåse", 6m),
+            Current(3, "Kvickly", "Faxe Kondi", "Flere varianter", 11m),
+        ]);
+
+        Assert.Equal([1, 3], lookup.ForItem(null, "Faxe Kondi", null, "1,5 l").Select(o => o.Id));
+    }
+
+    [Fact]
     public void B4_the_booster_still_matches_when_the_item_asks_for_it() =>
         Assert.Contains(730, Matches("Faxe Kondi Booster"));
 

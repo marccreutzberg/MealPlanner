@@ -93,13 +93,16 @@ public sealed partial class OfferLookup
 
         var (required, excluded) = ParseVariant(variant);
         var wantedSize = PackageSize.Parse(quantity);
-        return [.. candidates
+        var found = candidates
             .Where(o => required.Count == 0 || required.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
             .Where(o => !excluded.Any(w => o.SearchText.Contains(w, StringComparison.Ordinal)))
             .Where(o => !o.SearchText.Contains(NotForChildren, StringComparison.Ordinal)
                 || SpecialProductWords.Any(w => itemText.Contains(w, StringComparison.Ordinal)))
-            .OrderBy(o => SizeRank(o.Size, wantedSize))
-            .ThenBy(o => o.EffectivePrice)];
+            .Select(o => (Offer: o, Rank: SizeRank(o.Size, wantedSize)))
+            .ToList();
+        // When a package fits, a known other size is not an alternative: the planner picks by price after this.
+        if (found.Any(x => x.Rank == 0)) found.RemoveAll(x => x.Rank == 2);
+        return [.. found.OrderBy(x => x.Rank).ThenBy(x => x.Offer.EffectivePrice).Select(x => x.Offer)];
     }
 
     /// <summary>0: the package fits the wanted size; 1: unknown; 2: a different size.</summary>
