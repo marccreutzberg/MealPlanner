@@ -15,7 +15,6 @@ public static class ShoppingListModule
         services.AddScoped<AddItems.Handler>();
         services.AddScoped<UpdateItem.Handler>();
         services.AddScoped<SetBought.Handler>();
-        services.AddScoped<BuildTrip.Handler>();
         return services;
     }
 
@@ -30,7 +29,6 @@ public static class ShoppingListModule
         SetBought.Map(group);
         RemoveItems.Map(group);
         SuggestItems.Map(group);
-        BuildTrip.Map(group);
         app.MapHub<ShoppingListHub>(ShoppingListHub.Path);
         return app;
     }

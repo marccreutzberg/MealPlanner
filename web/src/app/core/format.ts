@@ -41,3 +41,22 @@ export function startsOn(day: string): string {
 export function endsSoon(lastValidDay: string): boolean {
   return daysFromToday(lastValidDay) <= 1;
 }
+
+const tripDay = new Intl.DateTimeFormat('da-DK', { weekday: 'long', day: 'numeric', month: 'short' });
+
+/** "søndag 8. nov." for a trip's date. */
+export function formatTripDate(iso: string): string {
+  const text = tripDay.format(new Date(iso));
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Dark or white text on a coloured band (category or store), whichever reads better on that colour. */
+export function inkOn(hex: string): string {
+  const channel = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+  // Contrast against white vs. against #1b2430 (luminance ~0.017).
+  return 1.05 / (luminance + 0.05) >= (luminance + 0.05) / 0.067 ? '#ffffff' : '#1b2430';
+}

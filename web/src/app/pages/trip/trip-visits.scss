@@ -1,0 +1,158 @@
+/* Two columns of stores, read top to bottom then the next column, like the list's categories. */
+.columns {
+  columns: 2;
+  column-gap: 6px;
+  padding: 6px 6px 0;
+}
+
+@media (max-width: 339px) {
+  .columns {
+    columns: 1;
+  }
+}
+
+section {
+  break-inside: avoid;
+  margin: 0 0 6px;
+  background: var(--surface);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 8px;
+  background: var(--band);
+  color: var(--band-ink);
+  font-size: var(--step--1);
+  font-weight: 800;
+}
+
+.subtotal {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+h3 {
+  margin: 0;
+  padding: 6px 8px 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  border-top: 1px solid var(--line);
+}
+
+h2 + ul li:first-child {
+  border-top: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  padding: 5px 0 5px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.name {
+  overflow-wrap: anywhere;
+}
+
+.variant {
+  color: var(--ink-soft);
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+
+  &:empty {
+    display: none;
+  }
+
+  .price {
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.not-bought {
+  color: var(--danger);
+}
+
+.check,
+.pick {
+  flex: none;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+
+  span {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ink-soft);
+    border-radius: 50%;
+    transition: background-color 120ms, border-color 120ms;
+  }
+
+  &[aria-pressed='true'] span {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 3px var(--surface);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+  }
+}
+
+/* Choosing items in the archive is a square box, so it does not read as "bought". */
+.pick span {
+  border-radius: 4px;
+}
+
+.bought {
+  .name,
+  .details {
+    color: var(--done);
+    text-decoration: line-through;
+  }
+}
+
+.note {
+  margin: 0;
+  padding: 8px;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
