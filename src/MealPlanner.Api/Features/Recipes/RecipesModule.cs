@@ -5,6 +5,7 @@ public static class RecipesModule
     public static IServiceCollection AddRecipes(this IServiceCollection services)
     {
         services.AddScoped<AddRecipe.Handler>();
+        services.AddScoped<SuggestMeals.Handler>();
         return services;
     }
 
@@ -13,6 +14,7 @@ public static class RecipesModule
     {
         var group = app.MapGroup("").RequireAuthorization();
         AddRecipe.Map(group);
+        SuggestMeals.Map(group);
         GetRecipes.Map(group);
         return app;
     }

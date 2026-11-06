@@ -25,10 +25,14 @@ public sealed class OfferLookup
 
     public OfferLookup(List<CurrentOffer> offers) => this.offers = offers;
 
-    public static async Task<OfferLookup> LoadAsync(AppDbContext db, int householdId, DateOnly day, CancellationToken ct)
+    public static Task<OfferLookup> LoadAsync(AppDbContext db, int householdId, DateOnly day, CancellationToken ct) =>
+        LoadAsync(db, householdId, day, day, ct);
+
+    /// <summary>Offers valid on at least one day from <paramref name="from"/> to <paramref name="to"/>.</summary>
+    public static async Task<OfferLookup> LoadAsync(AppDbContext db, int householdId, DateOnly from, DateOnly to, CancellationToken ct)
     {
-        var start = DanishTime.StartOf(day);
-        var end = DanishTime.StartOf(day.AddDays(1));
+        var start = DanishTime.StartOf(from);
+        var end = DanishTime.StartOf(to.AddDays(1));
         var storeIds = db.HouseholdStores.Where(h => h.HouseholdId == householdId && h.IsActive).Select(h => h.StoreId);
 
         var rows = await db.Offers.AsNoTracking()
