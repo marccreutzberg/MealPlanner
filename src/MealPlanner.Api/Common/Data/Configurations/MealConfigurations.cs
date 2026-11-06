@@ -9,6 +9,8 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
     public void Configure(EntityTypeBuilder<Recipe> b)
     {
         b.Property(x => x.Name).HasMaxLength(200);
+        b.HasIndex(x => new { x.HouseholdId, x.Name }).IsUnique();
+        b.Ignore(x => x.MainIngredients); // a filter over Ingredients, not a relationship
     }
 }
 
