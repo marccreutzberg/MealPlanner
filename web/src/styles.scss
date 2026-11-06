@@ -57,6 +57,8 @@
 html,
 body {
   margin: 0;
+  /* No double-tap zoom; taps also fire at once. Pinch zoom is blocked in main.ts. */
+  touch-action: manipulation;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font);
