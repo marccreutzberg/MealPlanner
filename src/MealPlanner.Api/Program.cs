@@ -20,6 +20,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<TjekClient>(c => c.BaseAddress = new Uri(TjekClient.BaseAddress));
 builder.Services.AddScoped<FetchOffersJob>();
 builder.Services.AddScoped<SearchOffers.Handler>();
+builder.Services.AddScoped<MapOffer.Handler>();
 
 var app = builder.Build();
 
@@ -41,5 +42,6 @@ Logout.Map(app);
 GetCurrentUser.Map(app);
 LoginPage.Map(app);
 SearchOffers.Map(app);
+MapOffer.Map(app);
 
 app.Run();
