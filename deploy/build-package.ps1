@@ -66,7 +66,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 # Settings with secrets are made on the server from the template, never shipped.
 Remove-Item (Join-Path $out "app\appsettings.Development.json") -ErrorAction SilentlyContinue
 
-Copy-Item (Join-Path $PSScriptRoot "install.ps1"), (Join-Path $PSScriptRoot "update.ps1"),
+Copy-Item (Join-Path $PSScriptRoot "install.ps1"), (Join-Path $PSScriptRoot "update.ps1"), (Join-Path $PSScriptRoot "update.cmd"),
     (Join-Path $PSScriptRoot "appsettings.Production.template.json"), (Join-Path $PSScriptRoot "NUC-INSTALL.md") $out
 
 if (Test-Path $zip) { Remove-Item $zip }

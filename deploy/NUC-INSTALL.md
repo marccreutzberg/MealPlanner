@@ -180,7 +180,9 @@ From the repository on the NUC:
 cd C:\src\MealPlanner
 git pull
 powershell -ExecutionPolicy Bypass -File .\deploy\build-package.ps1   # normal PowerShell; finds Node 24 itself
-powershell -ExecutionPolicy Bypass -File .\artifacts\MealPlanner-deploy\update.ps1   # elevated PowerShell
+.\artifacts\MealPlanner-deploy\update.cmd   # asks for administrator rights itself
 ```
 
+`update.cmd` (also a double-click in Explorer) elevates and runs `update.ps1` past the *Restricted* execution policy.
+Run the build from a window that is not inside `artifacts\MealPlanner-deploy`, or it cannot replace that folder.
 (Or build the package on the dev machine and copy it over.) Migrations run when the app starts; settings are kept.
