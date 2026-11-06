@@ -139,6 +139,42 @@ export interface TripVisit {
   items: TripItem[];
 }
 
+export interface RecipeIngredient {
+  text: string;
+  quantity: string | null;
+  isMain: boolean;
+  ingredient: string | null;
+}
+
+export interface Recipe {
+  id: number;
+  name: string;
+  servings: number;
+  totalMinutes: number;
+  isChildFriendly: boolean;
+  method: string | null;
+  ingredients: RecipeIngredient[];
+}
+
+export interface MealPlanDay {
+  date: string;
+  recipe: Recipe | null;
+  onShoppingList: boolean;
+}
+
+export interface MealPlan {
+  weekStart: string;
+  weekEnd: string;
+  days: MealPlanDay[];
+}
+
+export interface MealPlanToList {
+  weekStart: string;
+  recipes: string[];
+  items: { name: string; quantity: string | null; recipes: string[] }[];
+  skippedDays: number;
+}
+
 export interface Trip {
   visits: TripVisit[];
   estimatedSaving: number;

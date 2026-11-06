@@ -13,6 +13,7 @@ import { TranslatePipe } from './i18n/t.pipe';
       <nav [attr.aria-label]="'nav.label' | t">
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{ 'nav.list' | t }}</a>
         <a routerLink="/tilbud" routerLinkActive="active">{{ 'nav.offers' | t }}</a>
+        <a routerLink="/madplan" routerLinkActive="active">{{ 'nav.meals' | t }}</a>
         <a routerLink="/tur" routerLinkActive="active">{{ 'nav.trip' | t }}</a>
       </nav>
     }
@@ -22,7 +23,7 @@ import { TranslatePipe } from './i18n/t.pipe';
       position: fixed;
       inset: auto 0 0;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       background: var(--surface);
       border-top: 1px solid var(--line);
       padding-bottom: env(safe-area-inset-bottom);

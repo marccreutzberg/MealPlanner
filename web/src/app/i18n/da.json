@@ -1,5 +1,5 @@
 {
-  "nav": { "list": "Liste", "offers": "Tilbud", "trip": "Tur", "label": "Hovedmenu" },
+  "nav": { "list": "Liste", "offers": "Tilbud", "meals": "Madplan", "trip": "Tur", "label": "Hovedmenu" },
   "login": {
     "title": "Log ind",
     "email": "E-mail",
@@ -71,6 +71,24 @@
     "prePrice": "Før {price}",
     "count": "{shown} af {total} tilbud",
     "startsOn": "Fra {day}"
+  },
+  "meals": {
+    "title": "Madplan",
+    "week": "Uge {number}",
+    "previous": "Forrige uge",
+    "next": "Næste uge",
+    "noDish": "Ingen ret",
+    "minutes": "{count} min.",
+    "childFriendly": "Børnevenlig",
+    "servings": "{count} pers.",
+    "ingredients": "Ingredienser",
+    "method": "Sådan gør du",
+    "main": "hovedingrediens",
+    "empty": "Ingen madplan for ugen endnu. Bed Claude om at lave en ud fra ugens tilbud.",
+    "toList": "Læg på indkøbslisten",
+    "added": "{count} varer er lagt på listen.",
+    "alreadyOnList": "Ugens retter er allerede på listen.",
+    "onList": "På listen"
   },
   "trip": {
     "title": "Indkøbstur",
