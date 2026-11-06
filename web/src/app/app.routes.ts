@@ -7,5 +7,7 @@ export const routes: Routes = [
   { path: 'tilbud', canActivate: [authGuard], loadComponent: () => import('./pages/offers/offers-page').then(m => m.OffersPage) },
   { path: 'madplan', canActivate: [authGuard], loadComponent: () => import('./pages/meals/meals-page').then(m => m.MealsPage) },
   { path: 'tur', canActivate: [authGuard], loadComponent: () => import('./pages/trip/trip-page').then(m => m.TripPage) },
+  { path: 'tur/arkiv', canActivate: [authGuard], loadComponent: () => import('./pages/trip/trips-archive-page').then(m => m.TripsArchivePage) },
+  { path: 'tur/:id', canActivate: [authGuard], loadComponent: () => import('./pages/trip/trip-detail-page').then(m => m.TripDetailPage) },
   { path: '**', redirectTo: '' },
 ];

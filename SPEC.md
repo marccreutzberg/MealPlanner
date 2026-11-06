@@ -134,10 +134,15 @@ MCP-serveren ligger i API'et på `/mcp` (HTTP-transport). Hvert tool kalder den 
 | `save_meal_plan` | uge, dag → ret | gemt madplan |
 | `get_shopping_list` | — | listen grupperet på kategori med tilbudsbadges |
 | `add_to_shopping_list` | varer (navn, mængde, butik valgfri, tag valgfri) | tilføjede varer med kategori og tilbud |
-| `build_shopping_list` | madplan (valgfri), ekstra varer | butiksplan/indkøbstur: REMA + 1–2 butikker, varer pr. butik, kendte priser, anslået besparelse |
+| `build_shopping_list` | madplan (valgfri), ekstra varer, butikker (valgfri) | opretter en handletur (afslutter den igangværende): REMA + 1–2 butikker, varer pr. butik, kendte priser, anslået besparelse |
+| `get_trip` | tur-id (valgfri) | den igangværende tur (eller en afsluttet) med flueben, butikker og nye varer på listen |
+| `set_trip_stores` | butikker | turen fordelt igen på de valgte butikker (REMA altid med) |
+| `move_trip_item` | tur-vare-id, butik | varen flyttet på denne tur, fx fordi REMA er udsolgt |
+| `add_new_items_to_trip` | — | varer lagt på listen efter turen blev oprettet, taget med |
+| `finish_trip` | — | turen afsluttet og gemt som historik; antal varer der bliver på listen |
 | `map_offer` | tilbud-id, råvare | opdateret tilbud, nyt søgeord gemt |
 
-Alle tools er afgrænset til brugerens husstand.
+Alle tools er afgrænset til brugerens husstand. Handleture er beskrevet i `docs/superpowers/specs/2026-11-06-handleture-design.md`.
 
 ## 7. Arkitektur og teknik
 
@@ -230,6 +235,7 @@ Alle husstandsdata bærer `HouseholdId` fra dag ét. Råvarer, kategorier, butik
 | `ItemStorePreference` | vare, butik | Husstand |
 | `PurchaseHistory` | vare, mængde, butik, pris, købt | Husstand |
 | `PinnedItem` | vare, standardmængde | Husstand |
+| `ShoppingTrip` / `ShoppingTripStore` / `ShoppingTripItem` | oprettet, afsluttet, anslået besparelse / butik / listevare, butik, tilbud, pris, flyttet i hånden, købt (frosset ved afslutning) | Husstand |
 
 Det fælles/husstand-skel betyder, at en ny husstand i en anden by kun kræver nye `Household`- og `HouseholdStore`-rækker.
 

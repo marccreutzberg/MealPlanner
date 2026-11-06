@@ -1,6 +1,8 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { Api } from '../../core/api';
+import { inkOn } from '../../core/format';
 import { ListStore } from '../../core/list-store';
 import { Realtime } from '../../core/realtime';
 import { ListItem, StapleSuggestion, Store } from '../../core/models';
@@ -15,7 +17,7 @@ import { StapleRow } from './staple-row';
  */
 @Component({
   selector: 'app-list-page',
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, PriceTag, EditSheet, StapleRow],
+  imports: [NgTemplateOutlet, TranslatePipe, PriceTag, EditSheet, StapleRow],
   host: { class: 'page' },
   template: `
     <header class="app-bar">
@@ -66,7 +68,9 @@ import { StapleRow } from './staple-row';
 
       @if (toBuy().length) {
         <div class="actions">
-          <a class="button find" routerLink="/tur">{{ 'list.findOffers' | t }}</a>
+          <button class="button find" type="button" [disabled]="creatingTrip()" (click)="createTrip()">
+            {{ 'list.createTrip' | t }}
+          </button>
         </div>
       }
 
@@ -133,7 +137,11 @@ export class ListPage implements OnInit {
   protected readonly store = inject(ListStore);
   protected readonly realtime = inject(Realtime);
 
+  private readonly api = inject(Api);
+  private readonly router = inject(Router);
+
   protected readonly showBought = signal(false);
+  protected readonly creatingTrip = signal(false);
   protected readonly storeFilter = signal<Store | null>(null);
   protected readonly editing = signal<ListItem | null>(null);
 
@@ -162,16 +170,7 @@ export class ListPage implements OnInit {
     return !!item.flag && item.flag.store !== item.bestOffer?.store;
   }
 
-  /** Dark or white text on a category band, whichever reads better on that colour. */
-  protected inkOn(hex: string): string {
-    const channel = (i: number) => {
-      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
-      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-    };
-    const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
-    // Contrast against white vs. against #1b2430 (luminance ~0.017).
-    return 1.05 / (luminance + 0.05) >= (luminance + 0.05) / 0.067 ? '#ffffff' : '#1b2430';
-  }
+  protected readonly inkOn = inkOn;
 
   protected colorOf(storeName: string): string | undefined {
     return this.store.stores().find(s => s.name === storeName)?.color;
@@ -196,6 +195,18 @@ export class ListPage implements OnInit {
       await this.store.moreBought();
     } finally {
       this.loadingMore.set(false);
+    }
+  }
+
+  /** "Opret handletur": a trip in progress is finished first, after asking. */
+  protected async createTrip(): Promise<void> {
+    this.creatingTrip.set(true);
+    try {
+      if ((await this.api.activeTrip()) && !confirm(translate('trip.replaceConfirm'))) return;
+      await this.api.createTrip();
+      await this.router.navigate(['/tur']);
+    } finally {
+      this.creatingTrip.set(false);
     }
   }
 

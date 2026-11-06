@@ -682,6 +682,130 @@ namespace MealPlanner.Api.Common.Data.Migrations
                     b.ToTable("ShoppingListItems");
                 });
 
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTrip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("EstimatedSaving")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("HouseholdId")
+                        .IsUnique()
+                        .HasFilter("[FinishedAt] IS NULL");
+
+                    b.ToTable("ShoppingTrips");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTripItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Count")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("LastValidDay")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("LinePrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<bool>("MovedByHand")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OfferHeading")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("OfferId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Quantity")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ShoppingListItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tag")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TripId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Variant")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("WasBought")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShoppingListItemId");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("TripId", "ShoppingListItemId")
+                        .IsUnique()
+                        .HasFilter("[ShoppingListItemId] IS NOT NULL");
+
+                    b.ToTable("ShoppingTripItems");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTripStore", b =>
+                {
+                    b.Property<int>("TripId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TripId", "StoreId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("ShoppingTripStores");
+                });
+
             modelBuilder.Entity("MealPlanner.Api.Domain.Store", b =>
                 {
                     b.Property<int>("Id")
@@ -1242,6 +1366,68 @@ namespace MealPlanner.Api.Common.Data.Migrations
                     b.Navigation("ShoppingList");
                 });
 
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTrip", b =>
+                {
+                    b.HasOne("MealPlanner.Api.Domain.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MealPlanner.Api.Domain.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Household");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTripItem", b =>
+                {
+                    b.HasOne("MealPlanner.Api.Domain.ShoppingListItem", "ShoppingListItem")
+                        .WithMany()
+                        .HasForeignKey("ShoppingListItemId");
+
+                    b.HasOne("MealPlanner.Api.Domain.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MealPlanner.Api.Domain.ShoppingTrip", "Trip")
+                        .WithMany("Items")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ShoppingListItem");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTripStore", b =>
+                {
+                    b.HasOne("MealPlanner.Api.Domain.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MealPlanner.Api.Domain.ShoppingTrip", "Trip")
+                        .WithMany("Stores")
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Trip");
+                });
+
             modelBuilder.Entity("MealPlanner.Api.Domain.User", b =>
                 {
                     b.HasOne("MealPlanner.Api.Domain.Household", "Household")
@@ -1332,6 +1518,13 @@ namespace MealPlanner.Api.Common.Data.Migrations
             modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingList", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("MealPlanner.Api.Domain.ShoppingTrip", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Stores");
                 });
 #pragma warning restore 612, 618
         }

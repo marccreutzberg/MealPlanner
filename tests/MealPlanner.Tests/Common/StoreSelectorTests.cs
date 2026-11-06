@@ -94,6 +94,58 @@ public class StoreSelectorTests
         Assert.Contains(plan.Visits, v => v.Store == Kvickly && v.Items.Any(i => i.Item.Name == "Kakao"));
     }
 
+    [Fact]
+    public void Distribute_uses_only_chosen_stores_plus_home()
+    {
+        var items = new List<Item>
+        {
+            I("Kaffe", offers: [At(Netto, 40m)]),
+            I("Smør", offers: [At(Lidl, 9.95m)]),
+        };
+
+        var plan = Distribute(Stores, [Netto.Id], items);
+
+        Assert.Equal(["Netto", "REMA 1000"], plan.Visits.Select(v => v.Store.Name));
+        Assert.Contains(plan.Visits[1].Items, i => i.Item.Name == "Smør" && i.Offer is null);
+    }
+
+    [Fact]
+    public void Distribute_treats_stop_group_as_one_stop()
+    {
+        var plan = Distribute(Stores, [Lidl.Id], [I("Fanta", offers: [At(Coop365, 10m), At(Lidl, 11m)])]);
+
+        Assert.Contains(plan.Visits, v => v.Store == Coop365 && v.Items.Any(i => i.Item.Name == "Fanta"));
+    }
+
+    [Fact]
+    public void Distribute_sends_flagged_items_home_when_their_store_is_not_chosen()
+    {
+        var plan = Distribute(Stores, [Netto.Id], [I("Kakao", flag: Kvickly.Id, offers: [At(Kvickly, 30m)])]);
+
+        var visit = Assert.Single(plan.Visits);
+        Assert.Equal(Rema, visit.Store);
+        Assert.Null(visit.Items.Single().Offer);
+    }
+
+    [Fact]
+    public void Distribute_moves_items_of_removed_store_home_or_to_cheapest()
+    {
+        var plan = Distribute(Stores, [Netto.Id], [I("Ost", offers: [At(Kvickly, 10m), At(Netto, 12m)])]);
+
+        var netto = Assert.Single(plan.Visits, v => v.Store == Netto);
+        Assert.Equal(12m, netto.Items.Single().Offer!.Price);
+    }
+
+    [Fact]
+    public void Distribute_with_nothing_chosen_keeps_the_home_store()
+    {
+        var plan = Distribute(Stores, [], []);
+
+        var visit = Assert.Single(plan.Visits);
+        Assert.Equal(Rema, visit.Store);
+        Assert.Empty(visit.Items);
+    }
+
     [Theory]
     [InlineData("5 stk.", 5)]
     [InlineData("2 bakker", 2)]

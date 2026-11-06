@@ -56,7 +56,29 @@ public static partial class StoreSelector
         if (chosen.Count < 2) AddBestStop(chosen, stops, items, minimumGain: 0);
         if (chosen.Count < MaxStops) AddBestStop(chosen, stops, items, minimumGain: thirdStopThreshold);
 
-        var visitable = chosen.SelectMany(k => stops[k]).ToList();
+        return DistributeOver(chosen.SelectMany(k => stops[k]).ToList(), home, items);
+    }
+
+    /// <summary>
+    /// Spreads the items over stores chosen beforehand (a saved trip): each chosen store brings its stop-group
+    /// partners, the home store is always there, and an item flagged to a store that is not chosen goes home.
+    /// </summary>
+    public static Plan Distribute(List<Store> stores, IReadOnlyCollection<int> chosenStoreIds, List<Item> items)
+    {
+        var home = stores.FirstOrDefault(s => s.IsHome) ?? throw new InvalidOperationException("The household has no home store");
+        var visitable = Visitable(stores, chosenStoreIds);
+        return DistributeOver([.. stores.Where(s => visitable.Contains(s.Id))], home, items);
+    }
+
+    /// <summary>The store ids a choice covers: the chosen stores, their stop-group partners and the home store.</summary>
+    public static HashSet<int> Visitable(List<Store> stores, IReadOnlyCollection<int> chosenStoreIds)
+    {
+        var chosenStops = stores.Where(s => s.IsHome || chosenStoreIds.Contains(s.Id)).Select(StopKey).ToHashSet();
+        return [.. stores.Where(s => chosenStops.Contains(StopKey(s))).Select(s => s.Id)];
+    }
+
+    private static Plan DistributeOver(List<Store> visitable, Store home, List<Item> items)
+    {
         var byStore = visitable.ToDictionary(s => s.Id, _ => new List<PlannedItem>());
         decimal saving = 0;
         foreach (var item in items)
@@ -101,8 +123,14 @@ public static partial class StoreSelector
 
     private static (Store Store, Offer? Offer) Assign(Item item, List<Store> visitable, Store home)
     {
-        if (item.FlaggedStoreId is { } flagged && visitable.FirstOrDefault(s => s.Id == flagged) is { } flaggedStore)
-            return (flaggedStore, item.Offers.Where(o => o.StoreId == flagged).MinBy(o => o.Price));
+        if (item.FlaggedStoreId is { } flagged)
+        {
+            // Choose always visits flagged stores; on a saved trip without that store the item goes home.
+            var flaggedStore = visitable.FirstOrDefault(s => s.Id == flagged);
+            return flaggedStore is null
+                ? (home, null)
+                : (flaggedStore, item.Offers.Where(o => o.StoreId == flagged).MinBy(o => o.Price));
+        }
 
         var ids = visitable.Select(s => s.Id).ToHashSet();
         var cheapest = item.Offers

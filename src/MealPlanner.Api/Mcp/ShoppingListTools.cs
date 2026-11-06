@@ -1,11 +1,14 @@
 using System.ComponentModel;
 using System.Security.Claims;
 using MealPlanner.Api.Common.Auth;
+using MealPlanner.Api.Common.Data;
 using MealPlanner.Api.Common.Lists;
 using MealPlanner.Api.Common.Results;
+using MealPlanner.Api.Common.Trips;
 using MealPlanner.Api.Features.MealPlans;
 using MealPlanner.Api.Features.ShoppingList;
 using MealPlanner.Api.Features.Staples;
+using MealPlanner.Api.Features.Trips;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
@@ -58,30 +61,41 @@ public sealed class ShoppingListTools(IHttpContextAccessor http)
             new UpdateItem.Command(itemId, name, quantity, variant, tag, categoryId, storeId, clearFlag, rememberStore),
             User.GetHouseholdId(), cancellationToken));
 
-    [McpServerTool(Name = "build_shopping_list", Title = "Plan the shopping trip", Destructive = false)]
-    [Description("Plans the shopping trip from the list and today's offers: REMA 1000 always, the store (or stores next " +
+    [McpServerTool(Name = "build_shopping_list", Title = "Create the shopping trip", Destructive = true)]
+    [Description("Creates the shopping trip from everything on the list not bought yet, with today's offers, and " +
+                 "finishes the trip in progress if there is one. Stores: REMA 1000 always, the store (or stores next " +
                  "to each other) that saves most as number two, a third only when it saves more than the household's " +
-                 "threshold, and items flagged to a store always there. Optionally puts a week's meal plan on the list " +
-                 "first (amounts summed across dishes; days already on the list are skipped) and adds extra items. " +
-                 "Returns the items per store in driving order with known prices, subtotals, an estimated saving and the " +
-                 "trip as a plain-text checklist to show the user as is.")]
-    public async Task<BuildTrip.Trip> BuildShoppingListAsync(
+                 "threshold, and items flagged to a store always there; or only the stores named in 'stores' (plus " +
+                 "REMA 1000). Optionally puts a week's meal plan on the list first (amounts summed across dishes; days " +
+                 "already on the list are skipped) and adds extra items. Returns the trip: items per store in driving " +
+                 "order with known prices, subtotals, an estimated saving and the trip as a plain-text checklist to show " +
+                 "the user as is. To only look at the trip in progress, use get_trip instead: this replaces it. The " +
+                 "family ticks items off in the app; change the trip with set_trip_stores and " +
+                 "move_trip_item.")]
+    public async Task<TripViews.TripDto> BuildShoppingListAsync(
         AddItems.Handler addItems,
         AddMealPlanToList.Handler addMealPlan,
-        BuildTrip.Handler buildTrip,
+        CreateTrip.Handler createTrip,
+        AppDbContext db,
         [Description("Any day in a meal plan week (yyyy-MM-dd) whose ingredients should go on the list first.")] DateOnly? mealPlanWeek = null,
         [Description("Items to add before planning; same fields as add_to_shopping_list.")] List<ShoppingListWriter.NewItem>? extraItems = null,
+        [Description("Only these stores (names, e.g. 'Lidl'); REMA 1000 is always included. Leave out to let the planner choose.")] List<string>? stores = null,
         CancellationToken cancellationToken = default)
     {
+        var householdId = User.GetHouseholdId();
+        List<int>? storeIds = null;
+        if (stores is { Count: > 0 })
+            storeIds = Unwrap(await StoreNames.ResolveAsync(db, householdId, stores, cancellationToken));
+
         if (mealPlanWeek is { } week)
         {
-            var added = await addMealPlan.HandleAsync(week, force: false, User.GetHouseholdId(), User.GetUserId(), cancellationToken);
+            var added = await addMealPlan.HandleAsync(week, force: false, householdId, User.GetUserId(), cancellationToken);
             // "Already on the list" is fine here; a missing plan is not.
             if (!added.IsSuccess && added.Error!.Kind == ErrorKind.NotFound) throw new McpException(added.Error.Message);
         }
         if (extraItems is { Count: > 0 })
-            Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), User.GetHouseholdId(), User.GetUserId(), cancellationToken));
-        return await buildTrip.HandleAsync(User.GetHouseholdId(), cancellationToken);
+            Unwrap(await addItems.HandleAsync(new AddItems.Command(extraItems), householdId, User.GetUserId(), cancellationToken));
+        return Unwrap(await createTrip.HandleAsync(new CreateTrip.Command(storeIds), householdId, User.GetUserId(), cancellationToken));
     }
 
     [McpServerTool(Name = "suggest_staples", Title = "What do we usually buy?", ReadOnly = true, Idempotent = true)]

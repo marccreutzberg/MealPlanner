@@ -133,14 +133,16 @@ export interface OfferSearch {
   offers: Offer[];
 }
 
+/** One item on a saved trip. itemId is the list item (for ticking); null when removed from the list or finished. */
 export interface TripItem {
-  itemId: number;
+  id: number;
+  itemId: number | null;
   name: string;
   variant: string | null;
   quantity: string | null;
   tag: string | null;
   isBought: boolean;
-  offerId: number | null;
+  movedByHand: boolean;
   offerHeading: string | null;
   unitPrice: number | null;
   count: number;
@@ -193,8 +195,38 @@ export interface MealPlanToList {
   skippedDays: number;
 }
 
+export interface TripStoreOption {
+  storeId: number;
+  name: string;
+  color: string;
+  isHomeStore: boolean;
+  stopGroup: string | null;
+  onTrip: boolean;
+}
+
+/** A saved shopping trip; finishedAt null = in progress. */
 export interface Trip {
-  visits: TripVisit[];
+  id: number;
+  createdAt: string;
+  finishedAt: string | null;
   estimatedSaving: number;
+  visits: TripVisit[];
+  stores: TripStoreOption[];
+  newItems: { count: number; names: string[] };
   text: string;
+}
+
+export interface TripSummary {
+  id: number;
+  createdAt: string;
+  finishedAt: string | null;
+  stores: string[];
+  itemCount: number;
+  boughtCount: number;
+  total: number;
+}
+
+export interface TripPage {
+  items: TripSummary[];
+  total: number;
 }

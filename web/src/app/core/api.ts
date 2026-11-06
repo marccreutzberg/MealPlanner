@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  BoughtPage, CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, StapleSuggestion, Suggestion, Trip,
+  BoughtPage, CurrentUser, ItemUpdate, ListItem, MealPlan, MealPlanToList, NewItem, OfferSearch, Period, ShoppingList, StapleSuggestion, Suggestion, Trip, TripPage,
 } from './models';
 
 /** Typed access to the MealPlanner API. Same origin, so the auth cookie goes along by itself. */
@@ -55,8 +55,43 @@ export class Api {
     return firstValueFrom(this.http.get<Suggestion[]>('/api/shopping-list/suggestions', { params: { q, limit: 6 } }));
   }
 
-  trip() {
-    return firstValueFrom(this.http.post<Trip>('/api/shopping-list/trip', {}));
+  /** The trip in progress, or null (204). */
+  activeTrip() {
+    return firstValueFrom(this.http.get<Trip | null>('/api/trips/active'));
+  }
+
+  /** Finishes the trip in progress, if any, and makes a new one. No stores = the planner chooses. */
+  createTrip(storeIds?: number[]) {
+    return firstValueFrom(this.http.post<Trip>('/api/trips', { storeIds: storeIds ?? null }));
+  }
+
+  setTripStores(tripId: number, storeIds: number[]) {
+    return firstValueFrom(this.http.put<Trip>(`/api/trips/${tripId}/stores`, { storeIds }));
+  }
+
+  moveTripItem(tripId: number, tripItemId: number, storeId: number) {
+    return firstValueFrom(this.http.post<Trip>(`/api/trips/${tripId}/items/${tripItemId}/store`, { storeId }));
+  }
+
+  addNewItemsToTrip(tripId: number) {
+    return firstValueFrom(this.http.post<Trip>(`/api/trips/${tripId}/new-items`, {}));
+  }
+
+  finishTrip(tripId: number) {
+    return firstValueFrom(this.http.post<{ remaining: number }>(`/api/trips/${tripId}/finish`, {}));
+  }
+
+  /** Finished trips, newest first. */
+  trips(skip: number, take: number) {
+    return firstValueFrom(this.http.get<TripPage>('/api/trips', { params: { skip, take } }));
+  }
+
+  tripById(tripId: number) {
+    return firstValueFrom(this.http.get<Trip>(`/api/trips/${tripId}`));
+  }
+
+  tripToList(tripId: number, tripItemIds: number[]) {
+    return firstValueFrom(this.http.post<{ count: number }>(`/api/trips/${tripId}/to-list`, { tripItemIds }));
   }
 
   stapleSuggestions() {

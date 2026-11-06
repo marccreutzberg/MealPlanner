@@ -14,7 +14,7 @@ There are two ways to get the app onto the NUC:
   nvm install 24.21.0; nvm use 24.21.0
   git clone https://github.com/<owner>/MealPlanner.git C:\src\MealPlanner
   cd C:\src\MealPlanner
-  .\deploy\build-package.ps1                 # -> artifacts\MealPlanner-deploy (app + scripts)
+  powershell -ExecutionPolicy Bypass -File .\deploy\build-package.ps1   # -> artifacts\MealPlanner-deploy
   cd artifacts\MealPlanner-deploy            # continue with step 1 below from this folder
   ```
 
@@ -179,8 +179,8 @@ From the repository on the NUC:
 ```powershell
 cd C:\src\MealPlanner
 git pull
-.\deploy\build-package.ps1
-.\artifacts\MealPlanner-deploy\update.ps1     # elevated PowerShell
+powershell -ExecutionPolicy Bypass -File .\deploy\build-package.ps1   # normal PowerShell; finds Node 24 itself
+powershell -ExecutionPolicy Bypass -File .\artifacts\MealPlanner-deploy\update.ps1   # elevated PowerShell
 ```
 
 (Or build the package on the dev machine and copy it over.) Migrations run when the app starts; settings are kept.

@@ -16,19 +16,23 @@ import { Sheet } from '../../shared/sheet';
   template: `
     <app-sheet [heading]="'add.title' | t" [open]="open()" (closed)="reset(); closed.emit()">
       <form (ngSubmit)="add()">
-        <label class="field">
-          {{ 'add.name' | t }}
-          <input name="name" autocomplete="off" required [placeholder]="'add.namePlaceholder' | t"
-                 [ngModel]="name()" (ngModelChange)="onName($event)" />
-        </label>
-        @if (suggestions().length) {
-          <div class="suggestions" role="group" [attr.aria-label]="'add.suggestions' | t">
-            @for (s of suggestions(); track s.text) {
-              <!-- pointerdown is cancelled so the name field keeps focus and the phone keyboard stays up. -->
-              <button type="button" (pointerdown)="$event.preventDefault()" (click)="pick(s)">{{ s.text }}</button>
-            }
-          </div>
-        }
+        <!-- Suggestions drop down over the fields below, so nothing moves while typing. -->
+        <div class="name-field">
+          <label class="field">
+            {{ 'add.name' | t }}
+            <input name="name" autocomplete="off" required [placeholder]="'add.namePlaceholder' | t"
+                   [ngModel]="name()" (ngModelChange)="onName($event)"
+                   (focus)="nameFocused = true" (blur)="nameFocused = false; suggestions.set([])" />
+          </label>
+          @if (suggestions().length) {
+            <div class="suggestions" role="group" [attr.aria-label]="'add.suggestions' | t">
+              @for (s of suggestions(); track s.text) {
+                <!-- pointerdown is cancelled so the name field keeps focus and the phone keyboard stays up. -->
+                <button type="button" (pointerdown)="$event.preventDefault()" (click)="pick(s)">{{ s.text }}</button>
+              }
+            </div>
+          }
+        </div>
         <div class="row">
           <label class="field">
             {{ 'add.quantity' | t }}
@@ -49,9 +53,15 @@ import { Sheet } from '../../shared/sheet';
   `,
   styles: `
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
+    .name-field { position: relative; }
+    .suggestions {
+      position: absolute; z-index: 1; top: calc(100% - 6px); left: 0; right: 0;
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 8px;
+      border: 1px solid var(--line); border-radius: var(--radius-m);
+      background: var(--surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+    }
     .suggestions button {
-      min-height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+      min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
       background: var(--paper); font-weight: 600;
     }
     .status { min-height: 1.4em; margin: 0 0 10px; color: var(--ink-soft); font-size: var(--step--1); }
@@ -71,6 +81,7 @@ export class AddSheet {
   protected readonly suggestions = signal<Suggestion[]>([]);
   protected readonly status = signal('');
   protected readonly busy = signal(false);
+  protected nameFocused = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
 
   protected onName(value: string): void {
@@ -82,8 +93,8 @@ export class AddSheet {
     }
     this.timer = setTimeout(async () => {
       const result = await this.api.suggestions(value).catch(() => []);
-      // Ignore answers to text the user has already changed.
-      if (this.name() === value) this.suggestions.set(result.filter(s => s.text.toLowerCase() !== value.trim().toLowerCase()));
+      // Ignore answers to text the user has already changed, or that arrive after leaving the field.
+      if (this.name() === value && this.nameFocused) this.suggestions.set(result.filter(s => s.text.toLowerCase() !== value.trim().toLowerCase()));
     }, 150);
   }
 

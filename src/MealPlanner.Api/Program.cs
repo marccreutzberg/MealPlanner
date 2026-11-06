@@ -11,6 +11,7 @@ using MealPlanner.Api.Features.Offers;
 using MealPlanner.Api.Features.Recipes;
 using MealPlanner.Api.Features.ShoppingList;
 using MealPlanner.Api.Features.Staples;
+using MealPlanner.Api.Features.Trips;
 using MealPlanner.Api.Mcp;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,7 @@ builder.Services.AddScoped<FetchOffersJob>();
 builder.Services.AddScoped<SearchOffers.Handler>();
 builder.Services.AddScoped<MapOffer.Handler>();
 builder.Services.AddShoppingList();
+builder.Services.AddTrips();
 builder.Services.AddRecipes();
 builder.Services.AddMealPlans();
 builder.Services.AddStaples();
@@ -38,6 +40,7 @@ builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithTools<OfferTools>()
     .WithTools<ShoppingListTools>()
+    .WithTools<TripTools>()
     .WithTools<MealTools>();
 
 var app = builder.Build();
@@ -66,6 +69,7 @@ CreateApiKey.Map(app);
 ListApiKeys.Map(app);
 RevokeApiKey.Map(app);
 app.MapShoppingList();
+app.MapTrips();
 app.MapRecipes();
 app.MapMealPlans();
 app.MapStaples();
