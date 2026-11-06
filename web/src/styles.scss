@@ -37,6 +37,17 @@
   --step-2: 1.1875rem;
 }
 
+/* Desktop: a step larger. Sized for the phone, the text read small on a big screen at arm's length.
+   Only wide screens with a mouse; phones and tablets keep the sizes above. */
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  :root {
+    --step--1: 0.875rem;
+    --step-0: 1rem;
+    --step-1: 1.125rem;
+    --step-2: 1.375rem;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: #121821;
