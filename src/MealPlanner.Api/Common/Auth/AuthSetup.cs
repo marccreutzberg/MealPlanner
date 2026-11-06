@@ -36,7 +36,7 @@ public static class AuthSetup
         services.AddIdentityCore<User>(o =>
             {
                 o.User.RequireUniqueEmail = true;
-                o.Password.RequiredLength = 10;
+                o.Password.RequiredLength = 8;
                 o.Lockout.MaxFailedAccessAttempts = 5;
             })
             .AddEntityFrameworkStores<AppDbContext>()

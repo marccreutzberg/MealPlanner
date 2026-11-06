@@ -6,15 +6,18 @@
 .DESCRIPTION
     - Enables IIS with Application Initialization (needed so Hangfire's jobs run without visitors).
     - Checks that the ASP.NET Core Hosting Bundle is installed (it must be installed by hand first).
-    - Creates the app pool: No Managed Code, AlwaysRunning, idle time-out 0, no periodic recycling,
-      running as the given Windows account so SQL Server can be reached with Windows login.
+    - Creates the app pool: No Managed Code, AlwaysRunning, idle time-out 0, no periodic recycling.
+      It runs as its own virtual account IIS AppPool\<Name> (no password), which SQL Server sees with Windows login;
+      that account needs a SQL login and db_owner in the MealPlanner database (see NUC-INSTALL.md step 1).
+      Pass -AppPoolCredential to run as a specific Windows account instead.
     - Creates the site on the given port with Preload Enabled, copies the app and opens the port in the firewall
       for the private network (LAN/WireGuard). The internet only reaches the app through Cloudflare Tunnel.
     - Writes appsettings.Production.json from the template if it does not exist yet. Fill it in before starting.
 
 .EXAMPLE
-    .\install.ps1                          # prompts for the Windows account the app runs as
+    .\install.ps1                          # app pool runs as IIS AppPool\MealPlanner
     .\install.ps1 -SitePath D:\Web\MealPlanner -Port 8080
+    .\install.ps1 -AppPoolCredential (Get-Credential)   # run as a specific Windows account
 #>
 param(
     [string]$SitePath = "C:\inetpub\MealPlanner",
@@ -37,38 +40,54 @@ foreach ($feature in "IIS-WebServerRole", "IIS-WebServer", "IIS-ApplicationInit"
 }
 
 Write-Host "2/6 ASP.NET Core Hosting Bundle"
+# Visual Studio installs an ASP.NET Core 10 runtime and an older ASP.NET Core Module without the Hosting Bundle,
+# so the module file and the runtime folder alone do not prove the bundle is there. Look for the bundle itself.
+$uninstallKeys = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+$bundle = Get-ItemProperty $uninstallKeys -ErrorAction SilentlyContinue |
+    Where-Object { $_.DisplayName -like "Microsoft .NET 10.* - Windows Server Hosting" }
 $module = Join-Path $env:ProgramFiles "IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
 $runtime = Get-ChildItem (Join-Path $env:ProgramFiles "dotnet\shared\Microsoft.AspNetCore.App") -Directory -ErrorAction SilentlyContinue |
     Where-Object Name -like "10.*"
-if (-not (Test-Path $module) -or -not $runtime) {
+if (-not $bundle -or -not (Test-Path $module) -or -not $runtime) {
     throw "Install the ASP.NET Core 10 Hosting Bundle (https://dotnet.microsoft.com/download/dotnet/10.0), run 'iisreset', then run this script again."
 }
-Write-Host "   found ASP.NET Core $($runtime.Name -join ', ')"
+Write-Host "   found $(@($bundle.DisplayName) -join ', '); ASP.NET Core Module $((Get-Item $module).VersionInfo.FileVersion)"
 
 Import-Module WebAdministration
 
 Write-Host "3/6 App pool $Name"
-if (-not $AppPoolCredential) {
-    $AppPoolCredential = Get-Credential -Message "Windows account the app runs as (it needs access to SQL Server)" -UserName "$env:USERDOMAIN\$env:USERNAME"
-}
 $poolPath = "IIS:\AppPools\$Name"
 if (-not (Test-Path $poolPath)) { New-WebAppPool -Name $Name | Out-Null }
 Set-ItemProperty $poolPath -Name managedRuntimeVersion -Value ""
 Set-ItemProperty $poolPath -Name startMode -Value "AlwaysRunning"
 Set-ItemProperty $poolPath -Name processModel.idleTimeout -Value ([TimeSpan]::Zero)
 Set-ItemProperty $poolPath -Name recycling.periodicRestart.time -Value ([TimeSpan]::Zero)
-Set-ItemProperty $poolPath -Name processModel -Value @{
-    identityType = 3   # SpecificUser
-    userName     = $AppPoolCredential.UserName
-    password     = $AppPoolCredential.GetNetworkCredential().Password
+if ($AppPoolCredential) {
+    $poolAccount = $AppPoolCredential.UserName
+    Set-ItemProperty $poolPath -Name processModel -Value @{
+        identityType = 3   # SpecificUser
+        userName     = $poolAccount
+        password     = $AppPoolCredential.GetNetworkCredential().Password
+    }
 }
+else {
+    # The pool's own virtual account: no password to store or expire, and no rights beyond what is granted to it.
+    $poolAccount = "IIS AppPool\$Name"
+    Set-ItemProperty $poolPath -Name processModel -Value @{ identityType = 4; userName = ""; password = "" }   # ApplicationPoolIdentity
+}
+Write-Host "   runs as $poolAccount"
 
 Write-Host "4/6 Files in $SitePath"
 New-Item -ItemType Directory -Force $SitePath | Out-Null
 # Copy the app but never overwrite the server's own settings.
 robocopy $package $SitePath /E /XF appsettings.Production.json /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
-New-Item -ItemType Directory -Force (Join-Path $SitePath "logs") | Out-Null
+$logs = Join-Path $SitePath "logs"
+New-Item -ItemType Directory -Force $logs | Out-Null
+# The site itself is readable for all users; only the stdout log folder needs write access for the pool.
+icacls $logs /grant "${poolAccount}:(OI)(CI)M" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Could not give $poolAccount write access to $logs" }
 $settings = Join-Path $SitePath "appsettings.Production.json"
 if (-not (Test-Path $settings)) {
     Copy-Item (Join-Path $PSScriptRoot "appsettings.Production.template.json") $settings
@@ -89,4 +108,5 @@ if (-not (Get-NetFirewallRule -DisplayName "$Name HTTP $Port" -ErrorAction Silen
 }
 
 Write-Host ""
-Write-Host "Installed. Next: fill in $settings, then 'Restart-WebAppPool $Name' and open http://localhost:$Port" -ForegroundColor Green
+Write-Host "Installed. Next: make sure $poolAccount has a SQL login with db_owner in the database (NUC-INSTALL.md step 1)," -ForegroundColor Green
+Write-Host "fill in $settings, then 'Restart-WebAppPool $Name' and open http://localhost:$Port" -ForegroundColor Green
